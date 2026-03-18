@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BoxScan — Inventory Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c26;--border:#2a2a38;--accent:#00e5a0;--warn:#ffb800;--text:#e8e8f0;--muted:#5a5a72;--danger:#ff4466;--ordered:#4da6ff;--unavail:#ff6b35;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* Header */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;}
+.logo{font-family:'Space Mono',monospace;font-size:16px;font-weight:700;}.logo span{color:var(--accent);}
+.hright{display:flex;gap:18px;align-items:center;}
+.hstat{text-align:right;}
+.hstat-val{font-family:'Space Mono',monospace;font-size:16px;font-weight:700;color:var(--accent);}
+.hstat-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;}
+.hbtn{background:transparent;border:1px solid var(--border);color:var(--text);padding:6px 13px;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;transition:all .15s;}
+.hbtn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* Layout */
+.main{display:grid;grid-template-columns:390px 1fr;height:calc(100vh - 51px);}
+.left{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+
+/* Tabs */
+.tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;}
+.tab{flex:1;padding:11px 4px;text-align:center;font-size:11px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:all .15s;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tc{display:none;flex-direction:column;gap:13px;padding:18px;overflow-y:auto;flex:1;}
+.tc.active{display:flex;}
+
+/* Form */
+.flbl{font-family:'Space Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:5px;}
+.sublbl{font-size:10px;color:var(--muted);margin-bottom:4px;}
+.frow3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}
+.fi{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-family:'Space Mono',monospace;font-size:12px;color:var(--text);outline:none;transition:border-color .15s;}
+.fi:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,229,160,.07);}
+.fi::placeholder{color:var(--muted);font-size:11px;}
+.fi.lg{font-size:14px;padding:12px 13px;border-width:2px;}
+.sec-divider{display:flex;align-items:center;gap:8px;margin:2px 0;}
+.sec-divider span{font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);}
+.sec-divider::before,.sec-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* Action buttons */
+.agrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.abtn{padding:11px;border-radius:8px;border:1px solid;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px;}
+.a-scan{background:var(--accent);border-color:var(--accent);color:#0a0a0f;grid-column:1/-1;padding:12px;font-size:13px;}
+.a-scan:hover{background:#00cc8e;}
+.a-ord{background:transparent;border-color:var(--ordered);color:var(--ordered);}.a-ord:hover{background:rgba(77,166,255,.1);}
+.a-una{background:transparent;border-color:var(--unavail);color:var(--unavail);}.a-una:hover{background:rgba(255,107,53,.1);}
+
+/* Bulk */
+.sby-wrap{display:flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;}
+.sby-btn{flex:1;padding:7px;text-align:center;font-size:11px;font-weight:600;cursor:pointer;color:var(--muted);transition:all .15s;background:transparent;border:none;}
+.sby-btn.active{background:rgba(0,229,160,.15);color:var(--accent);}
+.bta{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px;font-family:'Space Mono',monospace;font-size:12px;color:var(--text);outline:none;resize:vertical;min-height:120px;transition:border-color .15s;line-height:1.7;}
+.bta:focus{border-color:var(--accent);}
+.bta::placeholder{color:var(--muted);}
+.bgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.bbtn{padding:9px 6px;border-radius:7px;border:1px solid;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;transition:all .15s;text-align:center;}
+.bb-scan{background:var(--accent);border-color:var(--accent);color:#0a0a0f;}.bb-scan:hover{background:#00cc8e;}
+.bb-ord{background:transparent;border-color:var(--ordered);color:var(--ordered);}.bb-ord:hover{background:rgba(77,166,255,.1);}
+.bb-una{background:transparent;border-color:var(--unavail);color:var(--unavail);}.bb-una:hover{background:rgba(255,107,53,.1);}
+.bb-srch{background:transparent;border-color:var(--warn);color:var(--warn);grid-column:1/-1;}.bb-srch:hover{background:rgba(255,184,0,.1);}
+.bres-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:none;max-height:220px;overflow-y:auto;}
+.bres-box.show{display:block;}
+.bres-hdr{font-family:'Space Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;}
+.bres-copy{background:transparent;border:1px solid var(--border);color:var(--muted);padding:3px 9px;border-radius:4px;font-size:10px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.bres-copy:hover{border-color:var(--accent);color:var(--accent);}
+.bres-row{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);}
+.bres-row:last-child{border-bottom:none;}
+.bres-id{font-family:'Space Mono',monospace;font-size:11px;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bres-loc{font-size:10px;color:var(--accent);font-family:'Space Mono',monospace;white-space:nowrap;}
+.bres-ok{color:var(--accent);font-size:11px;font-weight:600;white-space:nowrap;}
+.bres-skip{color:var(--warn);font-size:11px;font-weight:600;white-space:nowrap;}
+.bres-miss{color:var(--danger);font-size:11px;font-weight:600;white-space:nowrap;}
+.bres-rem{font-size:11px;font-weight:600;white-space:nowrap;}
+
+/* Upload */
+.upload-zone{border:2px dashed var(--border);border-radius:10px;padding:24px 16px;text-align:center;cursor:pointer;transition:all .2s;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(0,229,160,.04);}
+.upload-zone input{display:none;}
+.dl-tpl{background:transparent;border:1px solid var(--accent);color:var(--accent);padding:9px 16px;border-radius:7px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;width:100%;transition:all .15s;}
+.dl-tpl:hover{background:rgba(0,229,160,.08);}
+.uprev{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:none;max-height:180px;overflow-y:auto;}
+.uprev.show{display:block;}
+
+/* Activity */
+.rlist{display:flex;flex-direction:column;gap:5px;}
+.ri{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 9px;display:flex;align-items:center;gap:7px;animation:slideIn .2s ease;}
+@keyframes slideIn{from{opacity:0;transform:translateY(-5px);}to{opacity:1;transform:translateY(0);}}
+.ri-id{font-family:'Space Mono',monospace;font-size:10px;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ri-loc{font-size:10px;color:var(--accent);font-family:'Space Mono',monospace;white-space:nowrap;}
+.rbadge{font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px;text-transform:uppercase;white-space:nowrap;}
+.rb-s{background:rgba(0,229,160,.15);color:var(--accent);}
+.rb-o{background:rgba(77,166,255,.15);color:var(--ordered);}
+.rb-u{background:rgba(255,107,53,.15);color:var(--unavail);}
+.ri-time{font-size:10px;color:var(--muted);white-space:nowrap;}
+
+/* Right */
+.right{display:flex;flex-direction:column;overflow:hidden;}
+.toolbar{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;background:var(--surface);flex-wrap:wrap;}
+.swrap{position:relative;}
+.sico{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px;pointer-events:none;}
+.si{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:7px 10px 7px 28px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);outline:none;width:185px;transition:border-color .15s;}
+.si:focus{border-color:var(--accent);}
+.fbtn{padding:5px 10px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;}
+.fbtn.active{border-color:var(--accent);color:var(--accent);background:rgba(0,229,160,.08);}
+.cnt{margin-left:auto;font-size:11px;color:var(--muted);font-family:'Space Mono',monospace;white-space:nowrap;}
+
+/* Bulk action bar */
+.bbar{padding:7px 16px;background:rgba(0,229,160,.05);border-bottom:1px solid rgba(0,229,160,.18);display:none;align-items:center;gap:8px;flex-wrap:wrap;}
+.bbar.show{display:flex;}
+.bbar-lbl{font-size:12px;color:var(--accent);font-weight:600;}
+.bbar-btn{padding:4px 10px;border-radius:5px;border:1px solid;cursor:pointer;font-size:11px;font-weight:600;font-family:'DM Sans',sans-serif;transition:all .15s;background:transparent;}
+.bbo{border-color:var(--ordered);color:var(--ordered);}.bbo:hover{background:rgba(77,166,255,.1);}
+.bbu{border-color:var(--unavail);color:var(--unavail);}.bbu:hover{background:rgba(255,107,53,.1);}
+.bba{border-color:var(--accent);color:var(--accent);}.bba:hover{background:rgba(0,229,160,.1);}
+.bbcopy{border-color:var(--muted);color:var(--muted);}.bbcopy:hover{border-color:var(--accent);color:var(--accent);}
+.bbnote{border-color:var(--warn);color:var(--warn);}.bbnote:hover{background:rgba(255,184,0,.1);}
+.bbc{border-color:var(--border);color:var(--muted);}.bbc:hover{border-color:var(--danger);color:var(--danger);}
+
+/* Table */
+.twrap{overflow-y:auto;flex:1;}
+table{width:100%;border-collapse:collapse;}
+thead{position:sticky;top:0;z-index:10;background:var(--surface2);}
+th{padding:9px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;}
+th:hover{color:var(--text);}th.chk{width:32px;cursor:default;}
+td{padding:8px 10px;font-size:11px;border-bottom:1px solid rgba(42,42,56,.5);font-family:'Space Mono',monospace;vertical-align:middle;}
+tr:hover td{background:rgba(255,255,255,.02);}
+tr.sel td{background:rgba(0,229,160,.04);}
+.cb{width:13px;height:13px;cursor:pointer;accent-color:var(--accent);}
+
+/* Location header row */
+.loc-hdr td{background:rgba(0,229,160,.05);border-top:2px solid rgba(0,229,160,.2);border-bottom:1px solid rgba(0,229,160,.15)!important;}
+
+/* ID cells */
+.td-upc{color:var(--text);font-size:11px;}
+.td-lpn{color:var(--ordered);font-size:10px;}
+.td-empty{color:var(--muted);font-size:10px;opacity:.35;}
+.td-loc{color:var(--muted);font-size:10px;}
+.td-qty{color:var(--accent);font-weight:700;}
+.td-ord{color:var(--ordered);}
+.td-una{color:var(--unavail);}
+.td-rem{font-weight:700;}
+.rpos{color:var(--accent);}.rzero{color:var(--muted);}.rneg{color:var(--danger);}
+
+/* Qty popup */
+.qty-cell{cursor:pointer;position:relative;}
+.qty-cell:hover .qty-val{text-decoration:underline dotted var(--accent);}
+.qty-popup{display:none;position:absolute;top:-4px;left:-4px;z-index:50;background:var(--surface2);border:1px solid var(--accent);border-radius:8px;padding:5px 7px;align-items:center;gap:5px;box-shadow:0 4px 16px rgba(0,0,0,.4);white-space:nowrap;}
+.qty-popup.open{display:flex;}
+.qpi{width:54px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-family:'Space Mono',monospace;font-size:12px;color:var(--text);outline:none;text-align:center;}
+.qpi:focus{border-color:var(--accent);}
+.qpadd{background:var(--accent);border:none;color:#0a0a0f;padding:4px 9px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;}
+.qpadd:hover{background:#00cc8e;}
+.qpcancel{background:transparent;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:2px 4px;}
+.qpcancel:hover{color:var(--danger);}
+
+/* Note cell */
+.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:10px;font-family:'DM Sans',sans-serif;cursor:pointer;}
+.note-cell:hover{color:var(--text);}
+.note-cell.has-note{color:var(--warn);}
+
+/* Copy row btn */
+.copy-row-btn{display:none;position:absolute;right:6px;top:50%;transform:translateY(-50%);background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:2px 7px;border-radius:4px;font-size:10px;cursor:pointer;z-index:5;font-family:'DM Sans',sans-serif;white-space:nowrap;}
+tr:hover .copy-row-btn{display:block;}
+.copy-row-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* Col copy */
+th .col-copy{display:none;margin-left:4px;font-size:9px;opacity:.6;cursor:pointer;}
+th:hover .col-copy{display:inline;}
+th .col-copy:hover{opacity:1;color:var(--accent);}
+
+/* Editable cells */
+.editable{cursor:text;}.editable:hover{background:rgba(0,229,160,.04);}
+.cell-input{background:var(--bg);border:1px solid var(--accent);border-radius:4px;padding:2px 6px;font-family:'Space Mono',monospace;font-size:11px;color:var(--text);outline:none;width:100%;min-width:60px;}
+
+/* Cap banner */
+.cap-banner{background:rgba(255,184,0,.08);border:1px solid rgba(255,184,0,.3);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--warn);display:none;gap:7px;align-items:flex-start;}
+.cap-banner.show{display:flex;}
+
+/* Note modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;display:none;align-items:center;justify-content:center;}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px 24px;width:420px;max-width:90vw;display:flex;flex-direction:column;gap:14px;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+.modal-title{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;}
+.modal-sub{font-size:11px;color:var(--muted);}
+.modal-note-area{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;min-height:90px;transition:border-color .15s;line-height:1.6;}
+.modal-note-area:focus{border-color:var(--accent);}
+.modal-chips{display:flex;flex-wrap:wrap;gap:5px;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;}
+.mbtn{padding:8px 16px;border-radius:7px;border:1px solid;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;transition:all .15s;}
+.mbtn-cancel{background:transparent;border-color:var(--border);color:var(--muted);}.mbtn-cancel:hover{border-color:var(--danger);color:var(--danger);}
+.mbtn-save{background:var(--accent);border-color:var(--accent);color:#0a0a0f;}.mbtn-save:hover{background:#00cc8e;}
+.chip{padding:4px 10px;border-radius:20px;font-size:11px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;}
+.chip:hover{border-color:var(--text);color:var(--text);}
+.chip.active-chip{border-color:var(--accent);color:var(--accent);background:rgba(0,229,160,.08);}
+
+/* KB bar */
+.kb-bar{padding:5px 18px;border-top:1px solid var(--border);background:var(--surface);display:flex;gap:14px;flex-shrink:0;flex-wrap:wrap;}
+.kb{font-size:10px;color:var(--muted);}
+.kb kbd{background:var(--surface2);border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:9px;margin-right:3px;}
+
+/* Status badge */
+.status-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:600;font-family:'DM Sans',sans-serif;white-space:nowrap;}
+.s-available{background:rgba(0,229,160,.12);color:var(--accent);border:1px solid rgba(0,229,160,.3);}
+.s-partial{background:rgba(255,184,0,.12);color:var(--warn);border:1px solid rgba(255,184,0,.3);}
+.s-ordered{background:rgba(77,166,255,.12);color:var(--ordered);border:1px solid rgba(77,166,255,.3);}
+.s-unavail{background:rgba(255,107,53,.12);color:var(--unavail);border:1px solid rgba(255,107,53,.3);}
+.s-depleted{background:rgba(90,90,114,.12);color:var(--muted);border:1px solid rgba(90,90,114,.3);}
+.s-negative{background:rgba(255,68,102,.12);color:var(--danger);border:1px solid rgba(255,68,102,.3);}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:260px;color:var(--muted);gap:10px;}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 15px;font-size:12px;display:flex;align-items:center;gap:8px;z-index:999;animation:tIn .2s ease;box-shadow:0 8px 28px rgba(0,0,0,.4);}
+@keyframes tIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.tdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+::-webkit-scrollbar{width:4px;height:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="logo">Box<span>Scan</span></div>
+  <div class="hright">
+    <div class="hstat"><div class="hstat-val" id="s-total">0</div><div class="hstat-lbl">Unique Items</div></div>
+    <div class="hstat"><div class="hstat-val" id="s-rows">0</div><div class="hstat-lbl">Location Rows</div></div>
+    <div class="hstat"><div class="hstat-val" id="s-remain">0</div><div class="hstat-lbl">Total Remain</div></div>
+    <button class="hbtn" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
+</div>
+
+<div class="main">
+<!-- LEFT -->
+<div class="left">
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('scan')">Scan</div>
+    <div class="tab" onclick="switchTab('bulk')">Bulk Lookup</div>
+    <div class="tab" onclick="switchTab('boxloc')">Box Location</div>
+    <div class="tab" onclick="switchTab('upload')">Upload</div>
+    <div class="tab" onclick="switchTab('activity')">Activity</div>
+  </div>
+
+  <!-- SCAN -->
+  <div class="tc active" id="tab-scan">
+    <div>
+      <div class="flbl">UPC / EAN</div>
+      <input type="text" class="fi lg" id="s-upc" placeholder="Scan or type UPC/EAN..." autocomplete="off" autofocus />
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <div style="flex:1">
+        <div class="sublbl">LPN / FNSKU</div>
+        <input type="text" class="fi" id="s-lpn" placeholder="optional" autocomplete="off" />
+      </div>
+      <div style="width:72px;">
+        <div class="sublbl">Qty</div>
+        <input type="number" class="fi" id="s-qty" value="1" min="1" style="text-align:center;font-weight:700;" />
+      </div>
+    </div>
+    <div>
+      <div class="sublbl">Location</div>
+      <input type="text" class="fi" id="s-loc" placeholder="A1, B2, P3..." autocomplete="off" />
+    </div>
+    <div class="agrid">
+      <button class="abtn a-scan" onclick="handleAction('scan')">▶ Record Scan</button>
+      <button class="abtn a-ord"  onclick="handleAction('order')">📦 Mark Ordered</button>
+      <button class="abtn a-una"  onclick="handleAction('unavail')">✕ Not Available</button>
+    </div>
+    <div id="cap-banner" class="cap-banner"><span>⚠</span><span id="cap-msg"></span></div>
+    <div style="font-size:11px;color:var(--muted)"><kbd style="background:var(--surface2);border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:10px">Enter</kbd> to quick-scan</div>
+  </div>
+
+  <!-- BULK -->
+  <div class="tc" id="tab-bulk">
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div class="flbl" id="bulk-input-label">Paste UPCs — one per line</div>
+        <div class="sby-wrap" style="width:auto;">
+          <button class="sby-btn active" id="blk-mode-upc" onclick="setBulkMode('upc')">UPC</button>
+          <button class="sby-btn" id="blk-mode-lpn" onclick="setBulkMode('lpn')">LPN / FNSKU</button>
+        </div>
+      </div>
+      <textarea class="bta" id="bulk-input" placeholder="196255143795&#10;196255880272&#10;..." oninput="bulkLookupLive()"></textarea>
+    </div>
+
+    <!-- Live lookup table -->
+    <div id="bulk-lookup-wrap" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-family:'Space Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);" id="bulk-lookup-title">Results</span>
+        <button class="bres-copy" onclick="copyBulkLookup()">⎘ Copy Table</button>
+      </div>
+      <!-- Selection action bar -->
+      <div id="bl-bbar" style="display:none;padding:6px 10px;background:rgba(0,229,160,.05);border:1px solid rgba(0,229,160,.18);border-radius:7px;margin-bottom:6px;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="font-size:12px;color:var(--accent);font-weight:600;" id="bl-bbar-lbl">0 selected</span>
+        <button class="bbar-btn bbo" onclick="lookupTableAction('order')">📦 Order</button>
+        <button class="bbar-btn bbu" onclick="lookupTableAction('unavail')">🚫 N/A</button>
+        <button class="bbar-btn bba" onclick="lookupTableAction('undo')">↩ Undo</button>
+        <button class="bbar-btn bbcopy" onclick="lookupTableAction('copy')">⎘ Copy</button>
+        <button class="bbar-btn bbc" onclick="clearLookupSel()">✕ Clear</button>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:auto;max-height:260px;">
+        <table style="width:100%;border-collapse:collapse;" id="bulk-lookup-table">
+          <thead>
+            <tr style="background:var(--surface2);">
+              <th style="padding:7px 10px;width:32px;cursor:default;border-bottom:1px solid var(--border);"><input type="checkbox" class="cb" id="bl-sel-all" onchange="toggleLookupSelAll(this)"/></th>
+              <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;">UPC</th>
+              <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;">LPN / FNSKU</th>
+              <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;">Location</th>
+              <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;">Status</th>
+              <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;">Remaining</th>
+              <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;">Note</th>
+            </tr>
+          </thead>
+          <tbody id="bulk-lookup-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <div class="flbl" style="margin-bottom:7px">Action on above UPCs</div>
+      <div class="bgrid">
+        <button class="bbtn bb-scan" onclick="bulkAction('scan')">▶ Record All</button>
+        <button class="bbtn bb-ord"  onclick="bulkAction('order')">📦 Order All</button>
+        <button class="bbtn bb-una"  onclick="bulkAction('unavail')">✕ N/A All</button>
+      </div>
+    </div>
+    <div>
+      <div class="flbl" style="margin-bottom:7px">Optional: location for all</div>
+      <input type="text" class="fi" id="b-loc" placeholder="A1, B2, P3..." />
+    </div>
+    <div class="bres-box" id="bulk-result">
+      <div class="bres-hdr"><span id="bres-title">Results</span><button class="bres-copy" onclick="copyBulkResult()">⎘ Copy All</button></div>
+      <div id="bres-rows"></div>
+    </div>
+  </div>
+
+  <!-- BOX LOCATION -->
+  <div class="tc" id="tab-boxloc">
+    <div>
+      <div class="flbl">Search Box Location</div>
+      <div style="display:flex;gap:7px;">
+        <input type="text" class="fi" id="bl-search" placeholder="e.g. A1, B2, P3..." oninput="boxLocSearch()" style="flex:1;" />
+        <button onclick="clearBoxLoc()" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 11px;border-radius:8px;cursor:pointer;font-size:12px;">✕</button>
+      </div>
+    </div>
+
+    <div id="bl-result-wrap" style="display:none;flex-direction:column;gap:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;" id="bl-result-title"></span>
+        <button class="bres-copy" onclick="copyBoxLoc()">⎘ Copy</button>
+      </div>
+
+      <!-- Selection action bar (shown when rows selected) -->
+      <div id="bl-action-bar" style="display:none;padding:6px 10px;background:rgba(0,229,160,.05);border:1px solid rgba(0,229,160,.18);border-radius:7px;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="font-size:12px;color:var(--accent);font-weight:600;" id="bl-sel-lbl">0 selected</span>
+        <button class="bbar-btn bbo"    onclick="boxLocSelAction('order')">📦 Order</button>
+        <button class="bbar-btn bbu"    onclick="boxLocSelAction('unavail')">🚫 N/A</button>
+        <button class="bbar-btn bba"    onclick="boxLocSelAction('undo')">↩ Undo</button>
+        <button class="bbar-btn bbnote" onclick="boxLocNoteAll()">📝 Note</button>
+        <button class="bbar-btn bbc"    onclick="boxLocSelected.clear();boxLocLastIdx=-1;updateBoxLocBBar();document.querySelectorAll('#bl-result-body tr[data-rkey]').forEach(tr=>{const c=tr.querySelector('.cb');if(c)c.checked=false;tr.style.background='';});document.getElementById('bl-sel-all').checked=false;">✕ Clear</button>
+      </div>
+
+      <div style="display:flex;gap:7px;flex-wrap:wrap;">
+        <button class="bbtn bb-una"  style="flex:1;font-size:11px;" onclick="boxLocAction('unavail')">🚫 All N/A</button>
+        <button class="bbtn bb-ord"  style="flex:1;font-size:11px;" onclick="boxLocAction('order')">📦 All Ordered</button>
+        <button class="bbtn"         style="flex:1;font-size:11px;border-color:var(--muted);color:var(--muted);" onclick="boxLocAction('undo')">↩ Reset All</button>
+        <button class="bbtn bbnote"  style="flex:1;font-size:11px;" onclick="boxLocNoteAll()">📝 Note All</button>
+      </div>
+
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:auto;max-height:330px;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="background:var(--surface2);">
+              <th style="padding:7px 10px;width:32px;border-bottom:1px solid var(--border);"><input type="checkbox" class="cb" id="bl-sel-all" onchange="toggleBoxLocSelAll(this)"/></th>
+              <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">UPC</th>
+              <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">LPN</th>
+              <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">Status</th>
+              <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">Note</th>
+            </tr>
+          </thead>
+          <tbody id="bl-result-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="bl-empty" style="color:var(--muted);font-size:12px;text-align:center;padding:30px 0;display:none;">No items found at this location</div>
+  </div>
+
+  <!-- UPLOAD -->
+  <div class="tc" id="tab-upload">
+    <div>
+      <button class="dl-tpl" onclick="downloadTemplate()">⬇ Download CSV Template</button>
+    </div>
+    <div>
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('csv-file').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+        <input type="file" id="csv-file" accept=".csv" onchange="handleFileUpload(this.files[0])" />
+        <div style="font-size:26px;opacity:.4;margin-bottom:7px">📂</div>
+        <div style="font-size:13px;color:var(--muted)">Click or drag & drop CSV</div>
+      </div>
+    </div>
+    <div class="uprev" id="uprev">
+      <div style="font-family:'Space Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px" id="up-title">Preview</div>
+      <div id="up-rows"></div>
+    </div>
+  </div>
+
+  <!-- ACTIVITY -->
+  <div class="tc" id="tab-activity">
+    <div style="font-family:'Space Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:1.3px;color:var(--muted)">Recent Activity</div>
+    <div class="rlist" id="rlist"><div style="color:var(--muted);font-size:12px;text-align:center;padding:20px 0">No activity yet</div></div>
+  </div>
+</div>
+
+<!-- RIGHT -->
+<div class="right">
+  <div class="toolbar">
+    <div class="swrap"><span class="sico">🔍</span><input type="text" class="si" id="search-input" placeholder="UPC, LPN, location..." oninput="renderTable()" /></div>
+    <button class="fbtn active" id="f-all"    onclick="setFilter('all')">All</button>
+    <button class="fbtn"        id="f-remain" onclick="setFilter('remain')">Has Remain</button>
+    <button class="fbtn"        id="f-neg"    onclick="setFilter('neg')"   style="border-color:var(--danger);color:var(--danger)">Negative ⚠</button>
+    <button class="fbtn"        id="f-nolpn"  onclick="setFilter('nolpn')" style="border-color:var(--warn);color:var(--warn)">No LPN</button>
+    <button class="fbtn"        id="f-noted"  onclick="setFilter('noted')">Has Note</button>
+    <button class="fbtn"        id="f-ordered" onclick="setFilter('ordered')" style="border-color:var(--ordered);color:var(--ordered)">Ordered</button>
+    <button class="fbtn"        id="f-unavail" onclick="setFilter('unavail')" style="border-color:var(--unavail);color:var(--unavail)">N/A</button>
+    <button class="fbtn"        id="f-avail"   onclick="setFilter('avail')"   style="border-color:var(--accent);color:var(--accent)">Available</button>
+    <span class="cnt" id="row-count">0 rows</span>
+  </div>
+  <div class="bbar" id="bbar">
+    <span class="bbar-lbl" id="bbar-lbl">0 selected</span>
+    <button class="bbar-btn bbo"    onclick="tableAction('order')">📦 Order / Undo</button>
+    <button class="bbar-btn bbu"    onclick="tableAction('unavail')">🚫 N/A / Undo</button>
+    <button class="bbar-btn bba"    onclick="tableAction('scan')">▶ +Qty</button>
+    <button class="bbar-btn bbcopy" onclick="tableAction('copy')">⎘ Copy</button>
+    <button class="bbar-btn bbnote" onclick="tableAction('note')">📝 Note</button>
+    <button class="bbar-btn bbc"    onclick="clearSel()">✕ Clear</button>
+  </div>
+  <div class="twrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="chk"><input type="checkbox" class="cb" id="sel-all" onchange="toggleSelAll(this)"/></th>
+          <th onclick="sortBy('upc')">UPC / EAN ↕<span class="col-copy" onclick="copyCol(event,'upc')">⎘</span></th>
+          <th onclick="sortBy('lpn')">LPN / FNSKU ↕<span class="col-copy" onclick="copyCol(event,'lpn')">⎘</span></th>
+          <th onclick="sortBy('locKey')">Location ↕<span class="col-copy" onclick="copyCol(event,'locKey')">⎘</span></th>
+          <th onclick="sortBy('qty')">Qty Record ↕<span class="col-copy" onclick="copyCol(event,'qty')">⎘</span></th>
+          <th onclick="sortBy('order')">Ordered ↕<span class="col-copy" onclick="copyCol(event,'order')">⎘</span></th>
+          <th onclick="sortBy('unavail')">Not Avail ↕<span class="col-copy" onclick="copyCol(event,'unavail')">⎘</span></th>
+          <th onclick="sortBy('remain')">Remain ↕<span class="col-copy" onclick="copyCol(event,'remain')">⎘</span></th>
+          <th onclick="sortBy('status')">Status ↕</th>
+          <th>Note</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="empty"><div style="font-size:32px;opacity:.3">📭</div><div style="font-size:13px">Scan your first item to get started</div></div>
+  </div>
+  <div class="kb-bar">
+    <span class="kb"><kbd>S</kbd>Scan</span>
+    <span class="kb"><kbd>B</kbd>Bulk</span>
+    <span class="kb"><kbd>U</kbd>Upload</span>
+    <span class="kb"><kbd>Esc</kbd>Clear search</span>
+    <span class="kb"><kbd>Shift+Click</kbd>Range select</span>
+    <span class="kb"><kbd>dbl-click</kbd>Edit cell</span>
+  </div>
+</div>
+</div>
+
+<!-- Note Modal -->
+<div class="modal-overlay" id="note-modal">
+  <div class="modal">
+    <div><div class="modal-title">📝 Edit Note</div><div class="modal-sub" id="note-modal-sub"></div></div>
+    <div class="modal-chips" id="modal-chips"></div>
+    <textarea class="modal-note-area" id="modal-note-text" placeholder="Type a reason or note..."></textarea>
+    <div class="modal-actions">
+      <button class="mbtn mbtn-cancel" onclick="closeNoteModal()">Cancel</button>
+      <button class="mbtn mbtn-save"   onclick="saveNote()">Save Note</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Note Modal -->
+<div class="modal-overlay" id="bulk-note-modal">
+  <div class="modal">
+    <div><div class="modal-title">📝 Set Note on Selected</div><div class="modal-sub" id="bulk-note-sub"></div></div>
+    <div class="modal-chips" id="bulk-modal-chips"></div>
+    <textarea class="modal-note-area" id="bulk-note-text" placeholder="Note to apply to all selected rows..."></textarea>
+    <div class="modal-actions">
+      <button class="mbtn mbtn-cancel" onclick="closeBulkNoteModal()">Cancel</button>
+      <button class="mbtn mbtn-save"   onclick="saveBulkNote()">Apply to All Selected</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// DATA MODEL
+// Key = `${upc}||${bl}||${bn}||${pn}`
+//
+// Each row stores its OWN order, unavail, qty.
+// Status is per-row (per location).
+//
+// Qty shown on each row = that location's own qty
+// Ordered/Unavail/Remain = per row (per location)
+// "Total Qty" in header = sum across all locations for that UPC
+// ════════════════════════════════════════════════════════
+
+let rows      = {};   // key → { upc, lpn, loc, qty, order, unavail, note }
+let activity  = [];
+let currentFilter = 'all';
+let sortCol = 'locKey', sortDir = 1;
+let selectedKeys = new Set();
+let editingNoteKey = null;
+let lastClickedIndex = -1;
+let sbyMode = 'upc';
+
+const NOTE_PRESETS = ['Damaged','Wrong item','Missing label','Recount needed','Hold for inspection','Customer return','Expired','Duplicate scan'];
+
+// ── Helpers ───────────────────────────────────────────────
+function fmtLoc(loc) { return (loc||'').trim() || '—'; }
+function makeKey(upc, loc) { return `${upc}||${loc||''}`; }
+
+// Generate a unique key for each individual scan row
+let rowCounter = 0;
+function makeUniqueKey(upc, loc) {
+  return `${makeKey(upc,loc)}||${++rowCounter}`;
+}
+
+// Global remain = count of Available rows for this UPC (not ordered, not N/A)
+function globalRemainForUPC(upc) {
+  return Object.values(rows).filter(r=>r.upc===upc && r.order===0 && r.unavail===0).length;
+}
+function getRemain(r) { return globalRemainForUPC(r.upc); }
+
+// Qty Record = total number of individual items scanned for this UPC across all locations
+// This never decreases — it's a pure count of items that exist in inventory
+function totalQtyForUPC(upc) {
+  return Object.values(rows).filter(r=>r.upc===upc).length;
+}
+
+// Simple 3-state status — based on THIS row only
+function getStatus(r) {
+  if (r.unavail > 0) return { cls:'s-unavail',  label:'Not Available', icon:'🚫' };
+  if (r.order   > 0) return { cls:'s-ordered',  label:'Ordered',       icon:'📦' };
+  return                    { cls:'s-available',label:'Available',     icon:'✅' };
+}
+
+// ── Tab / mode ─────────────────────────────────────────────
+function switchTab(n) {
+  const ns=['scan','bulk','boxloc','upload','activity'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',ns[i]===n));
+  document.querySelectorAll('.tc').forEach(c=>c.classList.remove('active'));
+  document.getElementById('tab-'+n).classList.add('active');
+  if(n==='bulk')   setTimeout(()=>document.getElementById('bulk-input').focus(),50);
+  if(n==='scan')   setTimeout(()=>document.getElementById('s-upc').focus(),50);
+  if(n==='boxloc') setTimeout(()=>document.getElementById('bl-search').focus(),50);
+}
+
+let bulkMode = 'upc'; // 'upc' or 'lpn'
+
+function setBulkMode(mode) {
+  bulkMode = mode;
+  document.getElementById('blk-mode-upc').classList.toggle('active', mode==='upc');
+  document.getElementById('blk-mode-lpn').classList.toggle('active', mode==='lpn');
+  document.getElementById('bulk-input-label').textContent = mode==='lpn' ? 'Paste LPN / FNSKU — one per line' : 'Paste UPCs — one per line';
+  document.getElementById('bulk-input').placeholder = mode==='lpn' ? 'X001ABC123\nX002DEF456\n...' : '196255143795\n196255880272\n...';
+  document.getElementById('bulk-input').value = '';
+  document.getElementById('bulk-lookup-wrap').style.display = 'none';
+  lookupRowKeys=[]; lookupSelectedKeys.clear(); updateLookupBBar();
+}
+
+// ── Bulk lookup selection state ────────────────────────────
+let lookupSelectedKeys = new Set();
+let lookupLastClickIdx = -1;
+let lookupRowKeys = []; // ordered list of row keys shown in lookup table
+
+function bulkLookupLive() {
+  const raw = document.getElementById('bulk-input').value;
+  const entries = raw.split('\n')
+    .map(l=>l.trim()).filter(Boolean)
+    .map(l=>{ const p=l.split(/\s+/); return {id:p[0],extra:p[1]||''}; })
+    .filter(e=>e.id);
+
+  const wrap  = document.getElementById('bulk-lookup-wrap');
+  const body  = document.getElementById('bulk-lookup-body');
+  const title = document.getElementById('bulk-lookup-title');
+
+  if (!entries.length) { wrap.style.display='none'; lookupRowKeys=[]; lookupSelectedKeys.clear(); updateLookupBBar(); return; }
+  wrap.style.display='block';
+
+  const uniqueCount = new Set(entries.map(e=>e.id)).size;
+  title.textContent = `${entries.length} line${entries.length!==1?'s':''} · ${uniqueCount} unique`;
+
+  const usedKeys = new Set();
+  const th = s => `style="padding:7px 10px;font-family:'Space Mono',monospace;font-size:11px;`;
+
+  lookupRowKeys = [];
+  const rowsHtml = entries.map(({id, extra}, idx) => {
+    // Find matches based on mode
+    let allMatches;
+    if (bulkMode === 'lpn') {
+      allMatches = Object.entries(rows)
+        .filter(([k,r]) => r.lpn && r.lpn.toLowerCase() === id.toLowerCase())
+        .map(([k,r]) => ({...r, _rowKey:k}));
+    } else {
+      allMatches = Object.entries(rows)
+        .filter(([k,r]) => r.upc === id)
+        .map(([k,r]) => ({...r, _rowKey:k}));
+    }
+
+    const available = allMatches.filter(r => getStatus(r).cls==='s-available' && !usedKeys.has(r._rowKey));
+    const upc = bulkMode==='lpn' ? (allMatches[0]?.upc||id) : id;
+    const lpn = bulkMode==='lpn' ? id : (allMatches[0]?.lpn||'—');
+    const rem = allMatches.length ? globalRemainForUPC(allMatches[0].upc) : 0;
+    const rc  = rem>0?'rpos':rem<0?'rneg':'rzero';
+
+    const tdStyle = (color='var(--text)') => `padding:7px 10px;font-family:'Space Mono',monospace;font-size:11px;color:${color};`;
+
+    if (!allMatches.length) {
+      lookupRowKeys.push(null);
+      return `<tr data-idx="${idx}" style="border-top:1px solid rgba(42,42,56,.6);">
+        <td style="padding:7px 10px;"><input type="checkbox" class="cb" disabled/></td>
+        <td style="${tdStyle()}">${upc}</td>
+        <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+      </tr>`;
+    }
+
+    if (!available.length) {
+      lookupRowKeys.push(null);
+      return `<tr data-idx="${idx}" style="border-top:1px solid rgba(42,42,56,.6);">
+        <td style="padding:7px 10px;"><input type="checkbox" class="cb" disabled/></td>
+        <td style="${tdStyle()}">${upc}</td>
+        <td></td><td></td><td></td><td></td><td></td><td></td>
+        <td style="padding:7px 10px;font-size:11px;color:var(--danger);font-weight:700;">OOS</td>
+      </tr>`;
+    }
+
+    const first  = available[0];
+    const rk     = first._rowKey;
+    usedKeys.add(rk);
+    lookupRowKeys.push(rk);
+    const sel    = lookupSelectedKeys.has(rk);
+    const st     = getStatus(first);
+    const safeRk = rk.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+
+    return `<tr data-idx="${idx}" data-rkey="${rk}" style="border-top:1px solid rgba(42,42,56,.6);${sel?'background:rgba(0,229,160,.04);':''}">
+      <td style="padding:7px 10px;"><input type="checkbox" class="cb" ${sel?'checked':''} onclick="handleLookupClick(event,${idx},'${safeRk}')"/></td>
+      <td style="${tdStyle()}">${first.upc}</td>
+      <td style="${tdStyle('var(--ordered)')}">${first.lpn||''}</td>
+      <td style="${tdStyle('var(--accent)')}">${fmtLoc(first.loc)}</td>
+      <td style="padding:7px 10px;"><span class="status-badge ${st.cls}">${st.icon} ${st.label}</span></td>
+      <td style="padding:7px 10px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;" class="${rc}">${rem}</td>
+      <td style="padding:7px 10px;font-size:10px;color:var(--warn);">${first.note||''}</td>
+    </tr>`;
+  });
+
+  body.innerHTML = rowsHtml.join('');
+  document.getElementById('bl-sel-all').checked = false;
+  updateLookupBBar();
+}
+
+function handleLookupClick(event, idx, rkey) {
+  event.stopPropagation();
+  if (!rkey) return;
+
+  if (event.shiftKey && lookupLastClickIdx >= 0) {
+    const from = Math.min(lookupLastClickIdx, idx);
+    const to   = Math.max(lookupLastClickIdx, idx);
+    for (let i = from; i <= to; i++) {
+      if (lookupRowKeys[i]) lookupSelectedKeys.add(lookupRowKeys[i]);
+    }
+  } else {
+    if (lookupSelectedKeys.has(rkey)) { lookupSelectedKeys.delete(rkey); lookupLastClickIdx=-1; }
+    else { lookupSelectedKeys.add(rkey); lookupLastClickIdx=idx; }
+  }
+
+  document.getElementById('bl-sel-all').checked = false;
+  updateLookupBBar();
+
+  // Just update row highlights in-place without full re-render
+  document.querySelectorAll('#bulk-lookup-body tr[data-rkey]').forEach(tr => {
+    const k = tr.getAttribute('data-rkey');
+    const cb = tr.querySelector('.cb');
+    const sel = lookupSelectedKeys.has(k);
+    if (cb) cb.checked = sel;
+    tr.style.background = sel ? 'rgba(0,229,160,.04)' : '';
+  });
+}
+
+function toggleLookupSelAll(cb) {
+  const selectableKeys = lookupRowKeys.filter(Boolean);
+  if (cb.checked) selectableKeys.forEach(k=>lookupSelectedKeys.add(k));
+  else lookupSelectedKeys.clear();
+  lookupLastClickIdx = -1;
+  updateLookupBBar();
+  // Update checkboxes in place
+  document.querySelectorAll('#bulk-lookup-body tr[data-rkey]').forEach(tr => {
+    const k = tr.getAttribute('data-rkey');
+    const c = tr.querySelector('.cb');
+    const sel = lookupSelectedKeys.has(k);
+    if (c) c.checked = sel;
+    tr.style.background = sel ? 'rgba(0,229,160,.04)' : '';
+  });
+}
+
+function clearLookupSel() {
+  lookupSelectedKeys.clear(); lookupLastClickIdx=-1;
+  document.getElementById('bl-sel-all').checked=false;
+  updateLookupBBar();
+  document.querySelectorAll('#bulk-lookup-body tr[data-rkey]').forEach(tr => {
+    const c=tr.querySelector('.cb'); if(c) c.checked=false;
+    tr.style.background='';
+  });
+}
+
+function updateLookupBBar() {
+  const bar = document.getElementById('bl-bbar');
+  const lbl = document.getElementById('bl-bbar-lbl');
+  bar.style.display = lookupSelectedKeys.size>0?'flex':'none';
+  lbl.textContent = `${lookupSelectedKeys.size} selected`;
+}
+
+function lookupTableAction(type) {
+  if (!lookupSelectedKeys.size) return;
+  let done=0;
+  lookupSelectedKeys.forEach(key => {
+    const r = rows[key]; if (!r) return;
+    if (type==='order')   { r.order   = r.order>0?0:1;   done++; }
+    if (type==='unavail') { r.unavail = r.unavail>0?0:1; done++; }
+    if (type==='undo')    { r.order=0; r.unavail=0;       done++; }
+    if (type==='copy') return;
+  });
+  if (type==='copy') {
+    const lines=['UPC\tLocation\tBox #\tPallet\tStatus\tRemaining'];
+    lookupSelectedKeys.forEach(key=>{
+      const r=rows[key]; if(!r) return;
+      const st=getStatus(r);
+      lines.push([r.upc,r.lpn||'',r.loc||'',st.label,globalRemainForUPC(r.upc)].join('\t'));
+    });
+    copyText(lines.join('\n'),`${lookupSelectedKeys.size} rows copied`); return;
+  }
+  const labels={order:'Toggled order',unavail:'Toggled N/A',undo:'Reset to Available'};
+  showToast(`✓ ${labels[type]} on ${done} items`,'#00e5a0');
+  renderTable(); updateStats(); bulkLookupLive();
+}
+
+function copyBulkLookup() {
+  const lines = ['UPC\tLPN/FNSKU\tLocation\tStatus\tRemaining\tNote'];
+  document.querySelectorAll('#bulk-lookup-body tr').forEach(tr => {
+    const tds = [...tr.querySelectorAll('td')];
+    if (!tds.length) return;
+    const upc = (tds[1]?.textContent||'').trim();
+    if (!upc) return;
+    if (tds.length >= 7) {
+      // Full row: cb, upc, lpn, loc, status, remain, note
+      lines.push([
+        upc,
+        (tds[2]?.textContent||'').trim(),
+        (tds[3]?.textContent||'').trim(),
+        (tds[4]?.textContent||'').trim(),
+        (tds[5]?.textContent||'').trim(),
+        (tds[6]?.textContent||'').trim(),
+      ].join('\t'));
+    } else {
+      const note = (tds[tds.length-1]?.textContent||'').trim();
+      lines.push([upc, '', '', '', '', note].join('\t'));
+    }
+  });
+  copyText(lines.join('\n'), 'Lookup table copied');
+}
+
+// ── Box Location Search ────────────────────────────────────
+let boxLocSelected = new Set();
+let boxLocLastIdx  = -1;
+let boxLocKeys     = [];
+
+function boxLocSearch() {
+  const raw   = document.getElementById('bl-search').value.trim().toLowerCase();
+  const wrap  = document.getElementById('bl-result-wrap');
+  const empty = document.getElementById('bl-empty');
+  const body  = document.getElementById('bl-result-body');
+  const title = document.getElementById('bl-result-title');
+
+  if (!raw) { wrap.style.display='none'; empty.style.display='none'; return; }
+
+  // Split query into words — every word must match at least one location field
+  const words = raw.split(/\s+/).filter(Boolean);
+
+  const matched = Object.entries(rows).filter(([k,r]) => {
+    // Only show Available items
+    if (getStatus(r).cls !== 's-available') return false;
+    return words.every(w => (r.loc||'').toLowerCase().includes(w));
+  });
+
+  if (!matched.length) {
+    wrap.style.display='none'; empty.style.display='block'; return;
+  }
+
+  wrap.style.display='flex'; empty.style.display='none';
+  title.textContent = `${matched.length} available item${matched.length!==1?'s':''} found`;
+  boxLocKeys = matched.map(([k])=>k);
+  [...boxLocSelected].forEach(k=>{ if(!boxLocKeys.includes(k)) boxLocSelected.delete(k); });
+
+  body.innerHTML = matched.map(([k,r], idx) => {
+    const st  = getStatus(r);
+    const sel = boxLocSelected.has(k);
+    const sk  = k.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const noteHtml = r.note
+      ? `<span class="note-cell has-note" onclick="openNoteModal('${sk}')" title="${r.note.replace(/'/g,'&apos;')}">📝 ${r.note}</span>`
+      : `<span class="note-cell" onclick="openNoteModal('${sk}')">+ note</span>`;
+    return `<tr data-idx="${idx}" data-rkey="${k}" style="border-bottom:1px solid rgba(42,42,56,.4);${sel?'background:rgba(0,229,160,.04);':''}">
+      <td style="padding:6px 10px;width:32px;"><input type="checkbox" class="cb" ${sel?'checked':''} onclick="handleBoxLocClick(event,${idx},'${sk}')"/></td>
+      <td style="padding:6px 10px;font-family:'Space Mono',monospace;font-size:11px;color:var(--text);">${r.upc}</td>
+      <td style="padding:6px 10px;font-size:10px;color:var(--ordered);">${r.lpn||'—'}</td>
+      <td style="padding:6px 10px;"><span class="status-badge ${st.cls}">${st.icon} ${st.label}</span></td>
+      <td style="padding:6px 10px;">${noteHtml}</td>
+    </tr>`;
+  }).join('');
+
+  updateBoxLocBBar();
+}
+
+function handleBoxLocClick(event, idx, rkey) {
+  event.stopPropagation();
+  if (event.shiftKey && boxLocLastIdx >= 0) {
+    const from = Math.min(boxLocLastIdx, idx);
+    const to   = Math.max(boxLocLastIdx, idx);
+    for (let i = from; i <= to; i++) {
+      if (boxLocKeys[i]) boxLocSelected.add(boxLocKeys[i]);
+    }
+  } else {
+    if (boxLocSelected.has(rkey)) { boxLocSelected.delete(rkey); boxLocLastIdx=-1; }
+    else { boxLocSelected.add(rkey); boxLocLastIdx=idx; }
+  }
+  document.getElementById('bl-sel-all').checked = false;
+  updateBoxLocBBar();
+  // Update in-place
+  document.querySelectorAll('#bl-result-body tr[data-rkey]').forEach(tr => {
+    const k = tr.getAttribute('data-rkey');
+    const cb = tr.querySelector('.cb');
+    const sel = boxLocSelected.has(k);
+    if (cb) cb.checked = sel;
+    tr.style.background = sel ? 'rgba(0,229,160,.04)' : '';
+  });
+}
+
+function toggleBoxLocSelAll(cb) {
+  if (cb.checked) boxLocKeys.forEach(k=>boxLocSelected.add(k));
+  else boxLocSelected.clear();
+  boxLocLastIdx = -1;
+  updateBoxLocBBar();
+  document.querySelectorAll('#bl-result-body tr[data-rkey]').forEach(tr => {
+    const k = tr.getAttribute('data-rkey');
+    const c = tr.querySelector('.cb');
+    const sel = boxLocSelected.has(k);
+    if (c) c.checked = sel;
+    tr.style.background = sel ? 'rgba(0,229,160,.04)' : '';
+  });
+}
+
+function updateBoxLocBBar() {
+  const bar = document.getElementById('bl-action-bar');
+  const lbl = document.getElementById('bl-sel-lbl');
+  if (!bar) return;
+  const hasSel = boxLocSelected.size > 0;
+  bar.style.display = hasSel ? 'flex' : 'none';
+  lbl.textContent = `${boxLocSelected.size} selected`;
+}
+
+function boxLocSelAction(type) {
+  const keys = boxLocSelected.size > 0 ? [...boxLocSelected] : boxLocKeys;
+  keys.forEach(k => {
+    const r = rows[k]; if (!r) return;
+    if (type==='unavail') { r.order=0; r.unavail=1; }
+    if (type==='order')   { r.unavail=0; r.order=1; }
+    if (type==='undo')    { r.order=0; r.unavail=0; }
+  });
+  const labels = {unavail:'Marked N/A',order:'Marked Ordered',undo:'Reset to Available'};
+  showToast(`✓ ${labels[type]}: ${keys.length} items`, '#00e5a0');
+  renderTable(); updateStats(); boxLocSearch();
+}
+
+function boxLocAction(type) { boxLocSelAction(type); }
+
+function boxLocNoteAll() {
+  const keys = boxLocSelected.size > 0 ? [...boxLocSelected] : [...boxLocKeys];
+  if (!keys.length) return;
+  // Store the target keys on the modal, then open it
+  document.getElementById('bulk-note-modal')._boxLocKeys = keys;
+  document.getElementById('bulk-note-sub').textContent = `Applying to ${keys.length} item${keys.length!==1?'s':''}`;
+  buildChips('bulk-modal-chips','pickBulkChip');
+  document.getElementById('bulk-note-text').value='';
+  document.getElementById('bulk-note-modal').classList.add('show');
+  setTimeout(()=>document.getElementById('bulk-note-text').focus(),100);
+}
+
+function clearBoxLoc() {
+  document.getElementById('bl-search').value='';
+  document.getElementById('bl-result-wrap').style.display='none';
+  document.getElementById('bl-empty').style.display='none';
+  boxLocSelected.clear(); boxLocLastIdx=-1; boxLocKeys=[];
+}
+
+function copyBoxLoc() {
+  const keys = boxLocSelected.size > 0 ? [...boxLocSelected] : boxLocKeys;
+  const lines = ['UPC\tLPN\tLocation\tStatus'];
+  keys.forEach(k=>{ const r=rows[k]; if(!r) return; lines.push([r.upc,r.lpn||'',fmtLoc(r.loc),getStatus(r).label].join('\t')); });
+  copyText(lines.join('\n'), `${keys.length} items copied`);
+}
+function handleAction(type) {
+  const upc = document.getElementById('s-upc').value.trim().replace(/\s+/g,'');
+  if (!upc) { showToast('⚠ Enter a UPC first','#ffb800'); return; }
+  const lpn = document.getElementById('s-lpn').value.trim();
+  const qty = Math.max(1, parseInt(document.getElementById('s-qty').value)||1);
+  const loc = document.getElementById('s-loc').value.trim();
+  const banner = document.getElementById('cap-banner');
+  const msg    = document.getElementById('cap-msg');
+
+  if (type==='order'||type==='unavail') {
+    const tQty = totalQtyForUPC(upc);
+    if (tQty<=0) {
+      banner.classList.add('show');
+      msg.textContent=`Cannot ${type==='order'?'order':'mark N/A'} — ${upc} has 0 qty recorded.`;
+      showToast('⚠ No qty recorded','#ffb800'); return;
+    }
+    if (type==='order') {
+      const rem = globalRemainForUPC(upc);
+      if (rem<=0) {
+        banner.classList.add('show');
+        msg.textContent=`Cannot order — no remaining stock for ${upc}.`;
+        showToast('⚠ No remain','#ffb800'); return;
+      }
+    }
+    banner.classList.remove('show');
+  }
+
+  applyAction(upc, lpn, type, loc, qty);
+  document.getElementById('s-upc').value='';
+  document.getElementById('s-qty').value='1';
+  document.getElementById('s-upc').focus();
+  renderTable(); updateStats();
+}
+
+function applyAction(upc, lpn, type, loc={}, qty=1) {
+  if (type === 'scan') {
+    // Each scan = its own row with qty:1 (or qty as specified)
+    // If qty > 1, create that many separate rows
+    for (let i = 0; i < qty; i++) {
+      const key = makeUniqueKey(upc,loc);
+      rows[key] = { upc, lpn:lpn||'', loc:loc||'', qty:1, order:0, unavail:0, note:'' };
+    }
+    showToast(`✓ Scanned ${upc}${qty>1?' ×'+qty:''}`, '#00e5a0');
+    logActivity(upc, lpn, type, fmtLoc(loc), qty);
+    return;
+  }
+
+  // For order/unavail — find existing row to target
+  // If no location given, target first matching row
+  const hasLoc = !!loc;
+  const baseKey = makeKey(upc,loc);
+  let targetKey = null;
+  if (hasLoc) {
+    // Find first available row at this location
+    targetKey = Object.keys(rows).find(k => {
+      const r = rows[k];
+      return r.upc===upc && fmtLoc(r.loc)===fmtLoc(loc) && r.order===0 && r.unavail===0;
+    }) || Object.keys(rows).find(k => rows[k].upc===upc && fmtLoc(rows[k].bl,rows[k].bn,rows[k].pn)===fmtLoc(loc));
+  } else {
+    targetKey = Object.keys(rows).find(k => rows[k].upc===upc);
+  }
+  if (!targetKey) {
+    // Create new row if not found
+    targetKey = makeUniqueKey(upc,loc);
+    rows[targetKey] = { upc, lpn:lpn||'', loc:loc||'', qty:0, order:0, unavail:0, note:'' };
+  }
+  const r = rows[targetKey];
+  if (lpn) r.lpn = lpn;
+
+  if (type==='order')   { r.order+=qty;   showToast(`📦 Ordered ${upc}${qty>1?' ×'+qty:''}`, '#4da6ff'); }
+  if (type==='unavail') { r.unavail+=qty; showToast(`✕ N/A: ${upc}${qty>1?' ×'+qty:''}`, '#ff6b35'); }
+  logActivity(upc, r.lpn, type, fmtLoc(r.loc), qty);
+}
+
+// ── Bulk ───────────────────────────────────────────────────
+function bulkAction(type) {
+  const raw = document.getElementById('bulk-input').value;
+  // Parse each line: "UPC" or "UPC LPN"
+  const entries = raw.split('\n')
+    .map(l => l.trim())
+    .filter(Boolean)
+    .map(l => {
+      const parts = l.split(/\s+/);
+      return { upc: parts[0], lpn: parts[1]||'' };
+    })
+    .filter(e => e.upc);
+  if (!entries.length) { showToast('⚠ No IDs entered','#ffb800'); return; }
+  const loc = document.getElementById('b-loc').value.trim();
+  const resBox=document.getElementById('bulk-result'), resRows=document.getElementById('bres-rows');
+
+  if (type==='search') {
+    let html='';
+    entries.forEach(({upc,lpn}) => {
+      const id = sbyMode==='lpn' ? (lpn||upc) : upc;
+      const matches=Object.values(rows).filter(r=>sbyMode==='upc'?r.upc===id:r.lpn===id);
+      if (!matches.length) { html+=`<div class="bres-row"><span class="bres-id">${id}</span><span></span><span class="bres-miss">NOT FOUND</span></div>`; return; }
+      matches.forEach(r=>{
+        const rem=getRemain(r);
+        const rc=rem<0?'rneg':rem>0?'rpos':'rzero';
+        html+=`<div class="bres-row"><span class="bres-id">${id}${lpn&&sbyMode==='upc'?' / '+lpn:''}</span><span class="bres-loc">${fmtLoc(r.loc)}</span><span class="bres-rem ${rc}">Remain: ${rem}</span></div>`;
+      });
+    });
+    document.getElementById('bres-title').textContent=`Lookup (${entries.length} IDs)`;
+    resRows.innerHTML=html; resBox.classList.add('show');
+    showToast(`🔍 Looked up ${entries.length} IDs`,'#ffb800'); return;
+  }
+
+  let done=0, blocked=0;
+  let html='';
+
+  entries.forEach(({upc, lpn}) => {
+    if (sbyMode==='lpn') {
+      const searchLpn = lpn || upc; // if LPN mode, treat first token as LPN
+      const matches=Object.values(rows).filter(r=>r.lpn===searchLpn);
+      if (!matches.length){ html+=`<div class="bres-row"><span class="bres-id">${searchLpn}</span><span></span><span class="bres-miss">NOT FOUND</span></div>`; return; }
+      matches.forEach(r=>{ if(type==='scan')r.qty++; else if(type==='order')r.order++; else if(type==='unavail')r.unavail++; logActivity(r.upc,r.lpn,type,fmtLoc(r.loc),1); });
+      html+=`<div class="bres-row"><span class="bres-id">${searchLpn}</span><span></span><span class="bres-ok">✓</span></div>`; done++; return;
+    }
+
+    // UPC mode — store LPN if provided
+    if (type==='order') {
+      if (totalQtyForUPC(upc)<=0){ html+=`<div class="bres-row"><span class="bres-id">${upc}</span><span></span><span class="bres-skip">⚠ no qty</span></div>`; blocked++; return; }
+      // Find the first row for this UPC with remaining stock
+      const upcRows = Object.values(rows).filter(r=>r.upc===upc && getRemain(r)>0);
+      if (!upcRows.length){ html+=`<div class="bres-row"><span class="bres-id">${upc}</span><span></span><span class="bres-skip">⚠ fully ordered</span></div>`; blocked++; return; }
+      const target = upcRows[0];
+      target.order++;
+      if (lpn) { Object.values(rows).filter(r=>r.upc===upc).forEach(r=>{ if(!r.lpn) r.lpn=lpn; }); }
+      done++;
+      html+=`<div class="bres-row"><span class="bres-id">${upc}${lpn?' / '+lpn:''}</span><span class="bres-loc">${fmtLoc(target.bl,target.bn,target.pn)}</span><span class="bres-ok">✓ Ordered</span></div>`;
+    } else {
+      applyAction(upc, lpn, type, loc, 1);
+      html+=`<div class="bres-row"><span class="bres-id">${upc}${lpn?' / '+lpn:''}</span><span></span><span class="bres-ok">✓</span></div>`; done++;
+    }
+  });
+
+  document.getElementById('bres-title').textContent=`${entries.length} IDs · ${blocked>0?blocked+' skipped':'all done'}`;
+  resRows.innerHTML=html; resBox.classList.add('show');
+  const label={scan:'Recorded',order:'Ordered',unavail:'Marked N/A'}[type];
+  showToast(`✓ ${label} ${done} IDs${blocked>0?' ('+blocked+' skipped)':''}`, blocked>0?'#ffb800':'#00e5a0');
+  renderTable(); updateStats(); bulkLookupLive();
+}
+
+function copyBulkResult() {
+  const lines=[...document.querySelectorAll('#bres-rows .bres-row')].map(row=>{
+    const id=row.querySelector('.bres-id')?.textContent?.trim()||'';
+    const loc=row.querySelector('.bres-loc')?.textContent?.trim()||'';
+    const rem=row.querySelector('.bres-rem,.bres-ok,.bres-skip,.bres-miss')?.textContent?.trim()||'';
+    return [id,loc,rem].filter(Boolean).join(' - ');
+  });
+  copyText(lines.join('\n'), `${lines.length} results copied`);
+}
+
+// ── Table actions ──────────────────────────────────────────
+function tableAction(type) {
+  if (!selectedKeys.size) return;
+  let done=0, blocked=0;
+
+  if (type==='order') {
+    selectedKeys.forEach(key => {
+      const r = rows[key]; if (!r) return;
+      if (r.order > 0) {
+        r.order = 0; done++;  // undo — set back to available
+      } else {
+        if (getRemain(r)<=0) { blocked++; return; }
+        r.order = 1; done++;  // mark ordered
+      }
+    });
+    const extra=blocked>0?` (${blocked} skipped — no remain)`:'';
+    showToast(`📦 Toggled order on ${done} rows${extra}`, blocked>0?'#ffb800':'#4da6ff');
+
+  } else if (type==='unavail') {
+    selectedKeys.forEach(key=>{
+      const r=rows[key]; if(!r) return;
+      if (r.unavail > 0) { r.unavail=0; done++; }  // undo N/A
+      else               { r.unavail=1; done++; }   // mark N/A
+    });
+    showToast(`✕ Toggled N/A on ${done} rows`,'#ff6b35');
+
+  } else if (type==='scan') {
+    selectedKeys.forEach(key=>{ if(rows[key]){rows[key].qty++;done++;} });
+    showToast(`✓ Added qty to ${done} rows`,'#00e5a0');
+
+  } else if (type==='copy') {
+    const lines=['UPC\tLPN\tLocation\tQty\tOrdered\tN/A\tRemain'];
+    selectedKeys.forEach(key=>{
+      const r=rows[key]; if(!r) return;
+      lines.push([r.upc,r.lpn||'',fmtLoc(r.loc),r.qty,r.order,r.unavail,getRemain(r)].join('\t'));
+    });
+    copyText(lines.join('\n'), `${selectedKeys.size} rows copied`); return;
+
+  } else if (type==='note') { openBulkNoteModal(); return; }
+
+  renderTable(); updateStats();
+}
+
+// ── Selection ──────────────────────────────────────────────
+function toggleSelAll(cb) {
+  const vis=getVisible().map(r=>r._key);
+  if(cb.checked) vis.forEach(k=>selectedKeys.add(k)); else selectedKeys.clear();
+  lastClickedIndex=-1; renderTable(); updateBBar();
+}
+function handleRowClick(event, key, idx) {
+  event.stopPropagation();
+  const vis=getVisible().map(r=>r._key);
+  if (event.shiftKey && lastClickedIndex>=0) {
+    const from=Math.min(lastClickedIndex,idx), to=Math.max(lastClickedIndex,idx);
+    for(let i=from;i<=to;i++) if(vis[i]) selectedKeys.add(vis[i]);
+  } else {
+    if(selectedKeys.has(key)){selectedKeys.delete(key);lastClickedIndex=-1;}
+    else{selectedKeys.add(key);lastClickedIndex=idx;}
+  }
+  updateBBar(); document.getElementById('sel-all').checked=false;
+  if(event.shiftKey){renderTable();}else{
+    const tr=document.querySelector(`tr[data-key="${key.replace(/"/g,'\\"')}"]`);
+    if(tr){tr.querySelector('.cb').checked=selectedKeys.has(key);tr.classList.toggle('sel',selectedKeys.has(key));}
+  }
+}
+function clearSel(){selectedKeys.clear();lastClickedIndex=-1;document.getElementById('sel-all').checked=false;renderTable();updateBBar();}
+function updateBBar(){document.getElementById('bbar').classList.toggle('show',selectedKeys.size>0);document.getElementById('bbar-lbl').textContent=`${selectedKeys.size} selected`;}
+
+// ── Note modals ────────────────────────────────────────────
+function buildChips(containerId, onClickFn) {
+  document.getElementById(containerId).innerHTML=NOTE_PRESETS.map(p=>`<button class="chip" onclick="${onClickFn}(this,'${p}')">${p}</button>`).join('');
+}
+function openNoteModal(key) {
+  editingNoteKey=key; const r=rows[key];
+  document.getElementById('note-modal-sub').textContent=`${r.upc}  ·  ${fmtLoc(r.loc)}`;
+  document.getElementById('modal-note-text').value=r.note||'';
+  buildChips('modal-chips','pickChip');
+  if(r.note) document.querySelectorAll('#modal-chips .chip').forEach(c=>{if(c.textContent===r.note)c.classList.add('active-chip');});
+  document.getElementById('note-modal').classList.add('show');
+  setTimeout(()=>document.getElementById('modal-note-text').focus(),100);
+}
+function pickChip(el,text){document.querySelectorAll('#modal-chips .chip').forEach(c=>c.classList.remove('active-chip'));el.classList.add('active-chip');document.getElementById('modal-note-text').value=text;}
+function closeNoteModal(){document.getElementById('note-modal').classList.remove('show');editingNoteKey=null;}
+function saveNote(){
+  if(!editingNoteKey)return;
+  rows[editingNoteKey].note=document.getElementById('modal-note-text').value.trim();
+  closeNoteModal();
+  renderTable();
+  if(document.getElementById('tab-boxloc').classList.contains('active')) boxLocSearch();
+  showToast('✓ Note saved','#00e5a0');
+}
+document.getElementById('note-modal').addEventListener('click',e=>{if(e.target===document.getElementById('note-modal'))closeNoteModal();});
+
+function openBulkNoteModal(){
+  document.getElementById('bulk-note-sub').textContent=`Applying to ${selectedKeys.size} selected row${selectedKeys.size!==1?'s':''}`;
+  buildChips('bulk-modal-chips','pickBulkChip');
+  document.getElementById('bulk-note-text').value='';
+  document.getElementById('bulk-note-modal').classList.add('show');
+  setTimeout(()=>document.getElementById('bulk-note-text').focus(),100);
+}
+function pickBulkChip(el,text){document.querySelectorAll('#bulk-modal-chips .chip').forEach(c=>c.classList.remove('active-chip'));el.classList.add('active-chip');document.getElementById('bulk-note-text').value=text;}
+
+function saveBulkNote(){
+  const note = document.getElementById('bulk-note-text').value.trim();
+  const modal = document.getElementById('bulk-note-modal');
+  const boxKeys = modal._boxLocKeys;
+  if (boxKeys && boxKeys.length) {
+    boxKeys.forEach(k=>{ if(rows[k]) rows[k].note=note; });
+    showToast(`✓ Note set on ${boxKeys.length} items`,'#00e5a0');
+    modal._boxLocKeys = null;
+    closeBulkNoteModal();
+    renderTable(); boxLocSearch();
+  } else {
+    selectedKeys.forEach(k=>{ if(rows[k]) rows[k].note=note; });
+    showToast(`✓ Note set on ${selectedKeys.size} rows`,'#00e5a0');
+    closeBulkNoteModal();
+    renderTable();
+  }
+}
+
+function closeBulkNoteModal(){
+  const modal = document.getElementById('bulk-note-modal');
+  modal.classList.remove('show');
+  modal.removeAttribute('data-mode');
+  modal._boxLocKeys = null;
+}
+document.getElementById('bulk-note-modal').addEventListener('click',e=>{if(e.target===document.getElementById('bulk-note-modal'))closeBulkNoteModal();});
+
+// ── Render ─────────────────────────────────────────────────
+function getVisible() {
+  const q=document.getElementById('search-input').value.toLowerCase();
+  let data=Object.entries(rows).map(([key,r])=>({
+    ...r, _key:key, locKey:fmtLoc(r.loc), remain:getRemain(r)
+  }));
+  if(q) data=data.filter(r=>r.upc.toLowerCase().includes(q)||r.lpn.toLowerCase().includes(q)||r.locKey.toLowerCase().includes(q)||(r.note||'').toLowerCase().includes(q));
+  if(currentFilter==='remain')  data=data.filter(r=>getRemain(r)>0);
+  if(currentFilter==='neg')     data=data.filter(r=>getRemain(r)<0);
+  if(currentFilter==='nolpn')   data=data.filter(r=>!r.lpn);
+  if(currentFilter==='noted')   data=data.filter(r=>r.note);
+  if(currentFilter==='ordered') data=data.filter(r=>getStatus(r).cls==='s-ordered');
+  if(currentFilter==='unavail') data=data.filter(r=>getStatus(r).cls==='s-unavail');
+  if(currentFilter==='avail')   data=data.filter(r=>getStatus(r).cls==='s-available');
+  data.sort((a,b)=>{
+    let av, bv;
+    if(sortCol==='status'){ av=getStatus(a).label; bv=getStatus(b).label; }
+    else if(sortCol==='remain'){ av=getRemain(a); bv=getRemain(b); }
+    else { av=a[sortCol]??0; bv=b[sortCol]??0; }
+    if(typeof av==='string') return sortDir*av.localeCompare(bv);
+    return sortDir*(av-bv);
+  });
+  return data;
+}
+
+function renderTable() {
+  const data=getVisible();
+  const tbody=document.getElementById('tbody');
+  const empty=document.getElementById('empty');
+  document.getElementById('row-count').textContent=`${data.length} row${data.length!==1?'s':''}`;
+  if(!data.length){tbody.innerHTML='';empty.style.display='flex';return;}
+  empty.style.display='none';
+
+  // Group by location for the header rows
+  let html='', lastLoc=null, rowIdx=0;
+
+  data.forEach(r=>{
+    const rem = getRemain(r);
+    const rc  = rem>0?'rpos':rem<0?'rneg':'rzero';
+    const loc = r.locKey;
+    const sk  = r._key.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const idx = rowIdx++;
+
+    // Location group header
+    if(loc!==lastLoc){
+      lastLoc=loc;
+      const grp=data.filter(d=>d.locKey===loc);
+      const grpQty=grp.reduce((s,d)=>s+d.qty,0);
+      const grpRem=grp.reduce((s,d)=>s+getRemain(d),0);
+      const grc=grpRem>0?'rpos':grpRem<0?'rneg':'rzero';
+      const ls=loc.replace(/'/g,"\\'");
+      const grpItemCount=grp.length;  // pure count of individual items in this location
+      html+=`<tr class="loc-hdr">
+        <td colspan="2" style="padding:8px 10px 5px;border-bottom:none;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;color:var(--accent);">${loc}</td>
+        <td colspan="3" style="padding:8px 10px 5px;border-bottom:none;font-size:10px;color:var(--muted);">${grpItemCount} item${grpItemCount!==1?'s':''}</td>
+        <td colspan="4" style="padding:8px 10px 5px;border-bottom:none;text-align:right;">
+          <span class="${grc}" style="font-size:10px;font-weight:700;">Remain: ${grpRem}</span>
+          <button onclick="copyLocGroup('${ls}')" style="margin-left:8px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:2px 7px;border-radius:4px;font-size:9px;cursor:pointer;font-family:'DM Sans',sans-serif;">⎘ Copy group</button>
+        </td>
+        <td style="border-bottom:none;"></td>
+      </tr>`;
+    }
+
+    const noteDisplay=r.note
+      ?`<span class="note-cell has-note" onclick="openNoteModal('${sk}')" title="${r.note.replace(/'/g,'&apos;')}">📝 ${r.note}</span>`
+      :`<span class="note-cell" onclick="openNoteModal('${sk}')">+ add note</span>`;
+
+    const st = getStatus(r);
+
+    html+=`<tr class="${selectedKeys.has(r._key)?'sel':''}" style="position:relative;" data-key="${r._key}" data-idx="${idx}">
+      <td><input type="checkbox" class="cb" ${selectedKeys.has(r._key)?'checked':''} onclick="handleRowClick(event,'${sk}',${idx})"/></td>
+      <td class="td-upc editable" ondblclick="editCell(event,'${sk}','upc')">${r.upc}</td>
+      <td class="${r.lpn?'td-lpn':'td-empty'} editable" ondblclick="editCell(event,'${sk}','lpn')">${r.lpn||'—'}</td>
+      <td class="td-loc editable" ondblclick="editCell(event,'${sk}','loc')">${loc}</td>
+      <td class="td-qty" style="font-weight:700;">${totalQtyForUPC(r.upc)}</td>
+      <td class="td-ord">${Object.values(rows).filter(x=>x.upc===r.upc).reduce((s,x)=>s+x.order,0)}</td>
+      <td class="td-una">${Object.values(rows).filter(x=>x.upc===r.upc).reduce((s,x)=>s+x.unavail,0)}</td>
+      <td class="td-rem ${rc}">${rem}</td>
+      <td><span class="status-badge ${st.cls}">${st.icon} ${st.label}</span></td>
+      <td>${noteDisplay}</td>
+      <td style="position:relative;width:0;padding:0;border:none;"><button class="copy-row-btn" onclick="copyRow('${sk}')">⎘ Copy</button></td>
+    </tr>`;
+  });
+  tbody.innerHTML=html;
+}
+
+function logActivity(upc, lpn, type, loc, qty=1) {
+  const time=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  activity.unshift({upc,lpn,type,time,loc,qty});
+  if(activity.length>100) activity.pop();
+  renderActivity();
+}
+function renderActivity() {
+  const list=document.getElementById('rlist');
+  if(!activity.length){list.innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px 0">No activity yet</div>';return;}
+  list.innerHTML=activity.slice(0,30).map(a=>{
+    const bc={scan:'rb-s',order:'rb-o',unavail:'rb-u'}[a.type];
+    const lbl={scan:'Scan',order:'Order',unavail:'N/A'}[a.type];
+    return `<div class="ri"><span class="ri-id">${a.upc}${a.lpn?' / '+a.lpn:''}</span><span class="ri-loc">${a.loc}</span><span class="rbadge ${bc}">${lbl}${a.qty>1?' ×'+a.qty:''}</span><span class="ri-time">${a.time}</span></div>`;
+  }).join('');
+}
+function updateStats() {
+  const all=Object.values(rows);
+  const uniqs=new Set(all.map(r=>r.upc)).size;
+  const totalRem=[...new Set(all.map(r=>r.upc))].reduce((s,upc)=>s+globalRemainForUPC(upc),0);
+  document.getElementById('s-total').textContent=uniqs;
+  document.getElementById('s-rows').textContent=all.length;
+  const el=document.getElementById('s-remain');
+  el.textContent=totalRem;
+  el.style.color=totalRem<0?'var(--danger)':totalRem===0?'var(--muted)':'var(--accent)';
+}
+
+function setFilter(f){currentFilter=f;['all','remain','neg','nolpn','noted','ordered','unavail','avail'].forEach(id=>document.getElementById('f-'+id)?.classList.toggle('active',id===f));renderTable();}
+function sortBy(col){sortDir=sortCol===col?sortDir*-1:1;sortCol=col;renderTable();}
+
+// ── Inline cell edit ───────────────────────────────────────
+function editCell(e,key,field){
+  e.stopPropagation();const td=e.currentTarget;const r=rows[key];if(!r)return;
+  const cur=r[field]||'';
+  td.innerHTML=`<input class="cell-input" value="${cur.replace(/"/g,'&quot;')}" onblur="commitCell(this,'${key}','${field}')" onkeydown="cellKey(event,this,'${key}','${field}')" />`;
+  td.querySelector('input').focus();td.querySelector('input').select();
+}
+function editLocCell(e,key){
+  e.stopPropagation();const td=e.currentTarget;const r=rows[key];if(!r)return;
+  td.innerHTML=`<input class="cell-input" value="${(r.loc||'').replace(/"/g,'&quot;')}" placeholder="Location" onblur="commitLocSingle(this,'${key}')" onkeydown="locKeySingle(event,this,'${key}')" style="width:100%"/>`;
+  td.querySelector('input').focus();td.querySelector('input').select();
+}
+function commitCell(inp,key,field){const val=inp.value.trim();if(rows[key])rows[key][field]=val;renderTable();updateStats();showToast(`✓ ${field.toUpperCase()} updated`,'#00e5a0');}
+function cellKey(e,inp,key,field){if(e.key==='Enter'){e.preventDefault();commitCell(inp,key,field);}if(e.key==='Escape')renderTable();}
+function commitLocSingle(inp,key){if(rows[key])rows[key].loc=inp.value.trim();renderTable();updateStats();showToast('✓ Location updated','#00e5a0');}
+function locKeySingle(e,inp,key){if(e.key==='Enter'){e.preventDefault();commitLocSingle(inp,key);}if(e.key==='Escape')renderTable();}
+
+// ── Qty popup ──────────────────────────────────────────────
+function popupId(k){return'qp-'+k.replace(/[^a-zA-Z0-9]/g,'_');}
+function openQtyPopup(e,key){
+  e.stopPropagation();
+  document.querySelectorAll('.qty-popup.open').forEach(p=>p.classList.remove('open'));
+  const pop=document.getElementById(popupId(key));if(!pop)return;
+  pop.classList.add('open');const inp=pop.querySelector('.qpi');inp.value='1';setTimeout(()=>inp.focus(),50);
+}
+function closeQtyPopup(e,key){e&&e.stopPropagation();const pop=document.getElementById(popupId(key));if(pop)pop.classList.remove('open');}
+function commitQty(e,key){
+  e&&e.stopPropagation();const pop=document.getElementById(popupId(key));if(!pop)return;
+  const add=Math.max(1,parseInt(pop.querySelector('.qpi').value)||1);
+  if(!rows[key])return;rows[key].qty+=add;
+  closeQtyPopup(null,key);showToast(`✓ Added ×${add} to ${rows[key].upc}`,'#00e5a0');renderTable();updateStats();
+}
+function qtyKey(e,key){if(e.key==='Enter')commitQty(e,key);if(e.key==='Escape')closeQtyPopup(e,key);}
+document.addEventListener('click',()=>document.querySelectorAll('.qty-popup.open').forEach(p=>p.classList.remove('open')));
+
+// ── Copy helpers ───────────────────────────────────────────
+function copyText(text,label){
+  const ok=()=>showToast(`⎘ ${label||'Copied'}`,'#00e5a0');
+  const fail=()=>showToast('⚠ Copy failed','#ffb800');
+  if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(text).then(ok).catch(()=>fbCopy(text,ok,fail));}
+  else fbCopy(text,ok,fail);
+}
+function fbCopy(text,ok,fail){
+  const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;top:-9999px;left:-9999px;opacity:0;';
+  document.body.appendChild(ta);ta.focus();ta.select();
+  try{document.execCommand('copy')?ok():fail();}catch{fail();}
+  document.body.removeChild(ta);
+}
+function copyRow(key){
+  const r=rows[key];if(!r)return;
+  copyText([r.upc,r.lpn||'',fmtLoc(r.loc),r.qty,r.order,r.unavail,getRemain(r)].join('\t'),'Row copied');
+}
+function copyLocGroup(loc){
+  const grp=Object.values(rows).filter(r=>fmtLoc(r.loc)===loc);
+  const lines=['UPC\tLPN\tLocation\tQty\tOrdered\tN/A\tRemain'];
+  grp.forEach(r=>lines.push([r.upc,r.lpn||'',loc,r.qty,r.order,r.unavail,getRemain(r)].join('\t')));
+  copyText(lines.join('\n'),`Group "${loc}" copied`);
+}
+function copyCol(e,col){
+  e.stopPropagation();const data=getVisible();
+  const vals=data.map(r=>{
+    if(col==='locKey')return r.locKey;
+    if(col==='remain')return getRemain(r);
+    return r[col]??'';
+  });
+  const hdr={upc:'UPC/EAN',lpn:'LPN/FNSKU',locKey:'Location',qty:'Qty Record',order:'Ordered',unavail:'Not Avail',remain:'Remain'}[col]||col;
+  copyText(hdr+'\n'+vals.join('\n'),`"${hdr}" column copied (${vals.length} rows)`);
+}
+
+// ── Export / Template / Upload ─────────────────────────────
+function exportCSV(){
+  const data=Object.values(rows).map(r=>`"${r.upc}","${r.lpn||''}","${r.loc||''}",${r.qty},${r.order},${r.unavail},${getRemain(r)},"${(r.note||'').replace(/"/g,'""')}"`);
+  const csv='UPC/EAN,LPN/FNSKU,Location,Qty Record,Order,Not Available,Remain,Note\n'+data.join('\n');
+  dl(new Blob([csv],{type:'text/csv'}),`boxscan-${new Date().toISOString().slice(0,10)}.csv`);
+  showToast('✓ Exported!','#00e5a0');
+}
+function downloadTemplate(){
+  const csv=['UPC/EAN,LPN/FNSKU,Location','196255143795,,A1','196255880272,,A1','198445113291,,B2','198445113192,,B2'].join('\n');
+  dl(new Blob([csv],{type:'text/csv'}),'boxscan-template.csv');showToast('⬇ Template downloaded','#00e5a0');
+}
+function handleDrop(e){e.preventDefault();document.getElementById('upload-zone').classList.remove('drag');if(e.dataTransfer.files[0])handleFileUpload(e.dataTransfer.files[0]);}
+function handleFileUpload(file){
+  if(!file)return;const reader=new FileReader();
+  reader.onload=e=>{
+    const lines=e.target.result.split('\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('#'));
+    if(!lines.length){showToast('⚠ Empty file','#ffb800');return;}
+    const hasHeader=lines[0].toLowerCase().includes('upc');
+    const dataLines=hasHeader?lines.slice(1):lines;
+    let imported=0,skipped=0,lastLoc='';
+    const preview=[];
+    dataLines.forEach(line=>{
+      const cols=line.split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+      let upc='',lpn='',loc='';
+      // Support: UPC, LPN, Location  (3 cols)  or  UPC, Location  (2 cols)  or  UPC only
+      if(cols.length>=3){ [upc,lpn,loc]=cols; }
+      else if(cols.length===2){ [upc,loc]=cols; lpn=''; }
+      else if(cols.length>=1){ upc=cols[0]; }
+      // Fill-down location
+      if(loc.trim()) lastLoc=loc.trim(); else loc=lastLoc;
+      if(!upc.trim()){skipped++;return;}
+      upc=upc.trim(); lpn=(lpn||'').trim(); loc=(loc||'').trim();
+      // Each CSV line = one individual item row
+      const key=makeUniqueKey(upc,loc);
+      rows[key]={upc,lpn,loc,qty:1,order:0,unavail:0,note:''};
+      imported++;
+      if(preview.length<8)preview.push({upc,lpn,loc});
+    });
+    document.getElementById('up-title').textContent=`✓ Imported ${imported} items${skipped>0?' ('+skipped+' skipped)':''}`;
+    document.getElementById('up-rows').innerHTML=preview.map(p=>`
+      <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-family:'Space Mono',monospace;font-size:10px;">
+        <span style="color:var(--text)">${p.upc}</span>
+        <span style="color:var(--ordered)">${p.lpn||'—'}</span>
+        <span style="color:var(--accent);font-size:9px">${p.loc||'—'}</span>
+      </div>`).join('')+(imported>8?`<div style="color:var(--muted);font-size:10px;padding-top:5px">...and ${imported-8} more</div>`:'');
+    document.getElementById('uprev').classList.add('show');
+    renderTable();updateStats();showToast(`✓ Imported ${imported} items into inventory`,'#00e5a0');
+  };
+  reader.readAsText(file);
+}
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();}
+
+// ── Toast ──────────────────────────────────────────────────
+let toastT;
+function showToast(msg,color='var(--accent)'){
+  document.querySelector('.toast')?.remove();clearTimeout(toastT);
+  const t=document.createElement('div');t.className='toast';
+  t.innerHTML=`<div class="tdot" style="background:${color}"></div><span>${msg}</span>`;
+  document.body.appendChild(t);toastT=setTimeout(()=>t.remove(),2500);
+}
+
+// ── Keyboard shortcuts ─────────────────────────────────────
+document.getElementById('s-upc').addEventListener('keydown',e=>{if(e.key==='Enter')handleAction('scan');});
+document.addEventListener('keydown',e=>{
+  if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return;
+  if(e.key==='s'||e.key==='S'){switchTab('scan');document.getElementById('s-upc').focus();}
+  if(e.key==='b'||e.key==='B'){switchTab('bulk');document.getElementById('bulk-input').focus();}
+  if(e.key==='u'||e.key==='U')switchTab('upload');
+  if(e.key==='Escape'){document.getElementById('search-input').value='';renderTable();}
+});
+
+// Sample data — each entry is one individual scanned item
+[
+  ['196255143795','','A1'],
+  ['196255143795','','A1'],
+  ['196255143795','','A1'],
+  ['196255880272','','A1'],
+  ['196255880272','','A1'],
+  ['196255880265','','A1'],
+  ['196255143795','','B2'],
+  ['196255143795','','B2'],
+  ['198445113291','','B2'],
+  ['198445113192','','B2'],
+  ['196255880272','','P3'],
+  ['198445103278','','P3'],
+  ['198445103278','','P3'],
+].forEach(([upc,lpn,loc])=>{
+  const key=makeUniqueKey(upc,loc);
+  rows[key]={upc,lpn,qty:1,order:0,unavail:0,loc,note:''};
+});
+
+renderTable();renderActivity();updateStats();
+</script>
+</body>
+</html>
