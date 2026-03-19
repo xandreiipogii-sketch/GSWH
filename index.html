@@ -1023,7 +1023,7 @@ function saveChangeLocation() {
     searchInput.value = newLoc;
     boxLocSearch();
   }
-  renderTable(); updateStats();
+  renderTable(); updateStats(); scheduleSave();
 }
 
 function clearBoxLoc() {
@@ -1070,7 +1070,7 @@ function handleAction(type) {
   document.getElementById('s-upc').value='';
   document.getElementById('s-qty').value='1';
   document.getElementById('s-upc').focus();
-  renderTable(); updateStats();
+  renderTable(); updateStats(); scheduleSave();
 }
 
 function applyAction(upc, lpn, type, loc={}, qty=1) {
@@ -1250,7 +1250,7 @@ function tableAction(type) {
 
   } else if (type==='note') { openBulkNoteModal(); return; }
 
-  renderTable(); updateStats();
+  renderTable(); updateStats(); scheduleSave();
 }
 
 // ── Selection ──────────────────────────────────────────────
@@ -1344,8 +1344,13 @@ document.getElementById('bulk-note-modal').addEventListener('click',e=>{if(e.tar
 // ── Render ─────────────────────────────────────────────────
 function getVisible() {
   const q=document.getElementById('search-input').value.toLowerCase();
+  // Pre-compute remain per UPC once (avoid O(n²))
+  const remainCache={};
+  Object.values(rows).forEach(r=>{
+    if(remainCache[r.upc]===undefined) remainCache[r.upc]=globalRemainForUPC(r.upc);
+  });
   let data=Object.entries(rows).map(([key,r])=>({
-    ...r, _key:key, locKey:fmtLoc(r.loc), remain:getRemain(r)
+    ...r, _key:key, locKey:fmtLoc(r.loc), remain:remainCache[r.upc]??0
   }));
   if(q) data=data.filter(r=>r.upc.toLowerCase().includes(q)||r.lpn.toLowerCase().includes(q)||r.locKey.toLowerCase().includes(q)||(r.note||'').toLowerCase().includes(q));
   if(currentFilter==='remain')  data=data.filter(r=>getRemain(r)>0);
@@ -1384,6 +1389,7 @@ function buildLocGroups(data) {
 }
 
 function renderTable() {
+  _upcAggCache  = null; // invalidate cache
   visibleData   = getVisible();
   renderedCount = 0;
   const tbody = document.getElementById('tbody');
@@ -1396,27 +1402,31 @@ function renderTable() {
   renderMoreRows();
 }
 
+// Global UPC aggregate cache — rebuilt once per renderTable call
+let _upcAggCache = null;
+function getUPCAggCache() {
+  if (_upcAggCache) return _upcAggCache;
+  const cache = {};
+  Object.values(rows).forEach(r => {
+    if (!cache[r.upc]) cache[r.upc] = {qty:0,order:0,una:0};
+    cache[r.upc].qty++;
+    cache[r.upc].order += r.order;
+    cache[r.upc].una   += r.unavail;
+  });
+  _upcAggCache = cache;
+  return cache;
+}
+
 function renderMoreRows() {
   if (renderedCount >= visibleData.length) return;
-  const data  = visibleData;
-  const end   = Math.min(renderedCount + PAGE_SIZE, data.length);
+  const data   = visibleData;
+  const end    = Math.min(renderedCount + PAGE_SIZE, data.length);
   const locGrp = buildLocGroups(data);
-  const frag  = document.createDocumentFragment();
-  let lastLoc = renderedCount > 0 ? data[renderedCount-1].locKey : null;
+  const aggs   = getUPCAggCache();
+  const frag   = document.createDocumentFragment();
+  let lastLoc  = renderedCount > 0 ? data[renderedCount-1].locKey : null;
 
-  // Pre-compute UPC aggregates for visible slice
-  const upcCache = {};
-  function getUPCAgg(upc) {
-    if (!upcCache[upc]) {
-      const all = Object.values(rows).filter(x=>x.upc===upc);
-      upcCache[upc] = {
-        qty:   all.length,
-        order: all.reduce((s,x)=>s+x.order,0),
-        una:   all.reduce((s,x)=>s+x.unavail,0),
-      };
-    }
-    return upcCache[upc];
-  }
+  function getUPCAgg(upc) { return aggs[upc] || {qty:0,order:0,una:0}; }
 
   for (let i = renderedCount; i < end; i++) {
     const r   = data[i];
@@ -1519,7 +1529,7 @@ function resetAllChanges() {
     }
   });
   showToast(`↩ Reset ${count} row${count!==1?'s':''} back to Available`, '#00e5a0');
-  renderTable(); updateStats();
+  renderTable(); updateStats(); scheduleSave();
 }
 function setFilter(f){currentFilter=f;['all','remain','neg','nolpn','noted','ordered','unavail','avail'].forEach(id=>document.getElementById('f-'+id)?.classList.toggle('active',id===f));renderTable();}
 function sortBy(col){sortDir=sortCol===col?sortDir*-1:1;sortCol=col;renderTable();}
@@ -1630,14 +1640,14 @@ function handleFileUpload(file) {
     let offset = 0;
 
     function processChunk() {
-      const end = Math.min(offset + CHUNK, total);
-      for (let i = offset; i < end; i++) {
+      const chunkEnd = Math.min(offset + CHUNK, total);
+      for (let i = offset; i < chunkEnd; i++) {
         const line = dataLines[i];
         const cols = line.split(',').map(c=>c.trim().replace(/^"|"$/g,''));
         let upc='', lpn='', loc='';
-        if (cols.length>=3)      { [upc,lpn,loc]=cols; }
-        else if (cols.length===2){ [upc,loc]=cols; lpn=''; }
-        else if (cols.length>=1) { upc=cols[0]; }
+        if (cols.length>=3)       { [upc,lpn,loc]=cols; }
+        else if (cols.length===2) { [upc,loc]=cols; lpn=''; }
+        else if (cols.length>=1)  { upc=cols[0]; }
         if (loc.trim()) lastLoc=loc.trim(); else loc=lastLoc;
         if (!upc.trim()) { skipped++; continue; }
         upc=upc.trim(); lpn=(lpn||'').trim(); loc=(loc||'').trim();
@@ -1646,36 +1656,42 @@ function handleFileUpload(file) {
         imported++;
         if (preview.length < 8) preview.push({upc,lpn,loc});
       }
-      offset = end;
+      offset = chunkEnd;
 
-      // Update progress bar
+      // Update progress bar every chunk
       const pct = Math.round((offset / total) * 100);
       document.getElementById('up-progress-bar').style.width = pct + '%';
       document.getElementById('up-progress-pct').textContent = pct + '%';
       document.getElementById('up-progress-sub').textContent =
-        `${imported.toLocaleString()} imported · ${(total - offset).toLocaleString()} remaining`;
+        `${imported.toLocaleString()} of ${total.toLocaleString()} · ${(total-offset).toLocaleString()} remaining`;
 
       if (offset < total) {
-        // Yield to browser so UI stays responsive, then continue
-        requestAnimationFrame(processChunk);
+        setTimeout(processChunk, 0); // yield to browser between chunks
       } else {
-        // Done
+        // All done — update UI without freezing
         document.getElementById('upload-progress').style.display = 'none';
-        document.getElementById('up-title').textContent = `✓ Imported ${imported.toLocaleString()} items${skipped>0?' ('+skipped+' skipped)':''}`;
-        document.getElementById('up-rows').innerHTML = preview.map(p=>`
-          <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-family:'Space Mono',monospace;font-size:10px;">
-            <span style="color:var(--text)">${p.upc}</span>
-            <span style="color:var(--ordered)">${p.lpn||'—'}</span>
-            <span style="color:var(--accent);font-size:9px">${p.loc||'—'}</span>
-          </div>`).join('') + (imported>8?`<div style="color:var(--muted);font-size:10px;padding-top:5px">...and ${(imported-8).toLocaleString()} more</div>`:'');
+        document.getElementById('up-title').textContent =
+          `✓ ${imported.toLocaleString()} items imported${skipped>0?' ('+skipped+' skipped)':''}`;
+        document.getElementById('up-rows').innerHTML =
+          preview.map(p=>`
+            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-family:'Space Mono',monospace;font-size:10px;">
+              <span style="color:var(--text)">${p.upc}</span>
+              <span style="color:var(--ordered)">${p.lpn||'—'}</span>
+              <span style="color:var(--accent);font-size:9px">${p.loc||'—'}</span>
+            </div>`).join('') +
+          (imported>8 ? `<div style="color:var(--muted);font-size:10px;padding-top:5px">...and ${(imported-8).toLocaleString()} more</div>` : '');
         document.getElementById('uprev').classList.add('show');
-        renderTable(); updateStats();
-        showToast(`✅ Imported ${imported.toLocaleString()} items`,'#00e5a0');
+        updateStats();
+        // Defer renderTable so the "done" UI paints first
+        setTimeout(()=>{
+          renderTable();
+          saveData();
+          showToast(`✅ ${imported.toLocaleString()} items imported`,'#00e5a0');
+        }, 50);
       }
     }
 
-    // Start processing after one frame so the progress bar renders first
-    requestAnimationFrame(processChunk);
+    setTimeout(processChunk, 50); // give browser time to paint progress bar first
   };
   reader.readAsText(file);
 }
@@ -1700,25 +1716,68 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){document.getElementById('search-input').value='';renderTable();}
 });
 
-// Sample data — each entry is one individual scanned item
-[
-  ['196255143795','','A1'],
-  ['196255143795','','A1'],
-  ['196255143795','','A1'],
-  ['196255880272','','A1'],
-  ['196255880272','','A1'],
-  ['196255880265','','A1'],
-  ['196255143795','','B2'],
-  ['196255143795','','B2'],
-  ['198445113291','','B2'],
-  ['198445113192','','B2'],
-  ['196255880272','','P3'],
-  ['198445103278','','P3'],
-  ['198445103278','','P3'],
-].forEach(([upc,lpn,loc])=>{
-  const key=makeUniqueKey(upc,loc);
-  rows[key]={upc,lpn,qty:1,order:0,unavail:0,loc,note:''};
-});
+// ── Persist to localStorage ────────────────────────────────
+const STORAGE_KEY = 'boxscan_v1';
+
+function saveData() {
+  try {
+    const payload = { rows, rowCounter };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  } catch(e) {
+    // Storage full — warn once
+    console.warn('BoxScan: localStorage full, data not saved:', e);
+  }
+}
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const payload = JSON.parse(raw);
+    if (payload.rows) {
+      rows = payload.rows;
+      rowCounter = payload.rowCounter || 0;
+      return true;
+    }
+  } catch(e) {
+    console.warn('BoxScan: could not load saved data:', e);
+  }
+  return false;
+}
+
+// Auto-save after every action — debounced
+let _saveTimer = null;
+function scheduleSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(saveData, 800);
+}
+
+// ── Init ───────────────────────────────────────────────────
+const hasSaved = loadData();
+
+if (!hasSaved) {
+  // Load sample data only if no saved data exists
+  [
+    ['196255143795','','A1'],
+    ['196255143795','','A1'],
+    ['196255143795','','A1'],
+    ['196255880272','','A1'],
+    ['196255880272','','A1'],
+    ['196255880265','','A1'],
+    ['196255143795','','B2'],
+    ['196255143795','','B2'],
+    ['198445113291','','B2'],
+    ['198445113192','','B2'],
+    ['196255880272','','P3'],
+    ['198445103278','','P3'],
+    ['198445103278','','P3'],
+  ].forEach(([upc,lpn,loc])=>{
+    const key=makeUniqueKey(upc,loc);
+    rows[key]={upc,lpn,qty:1,order:0,unavail:0,loc,note:''};
+  });
+} else {
+  showToast(`✅ ${Object.keys(rows).length.toLocaleString()} items loaded`,'#00e5a0');
+}
 
 renderTable();renderActivity();updateStats();
 </script>
