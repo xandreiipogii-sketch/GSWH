@@ -988,10 +988,8 @@ function openChangeLocModal(keys, callback) {
   document.getElementById('change-loc-input').value='';
   setTimeout(()=>document.getElementById('change-loc-input').focus(),100);
 }
-document.addEventListener('DOMContentLoaded',()=>{
-  document.getElementById('change-loc-modal').addEventListener('click',e=>{
-    if(e.target===document.getElementById('change-loc-modal')) closeChangeLocModal();
-  });
+document.getElementById('change-loc-modal').addEventListener('click',e=>{
+  if(e.target===document.getElementById('change-loc-modal')) closeChangeLocModal();
 });
 function closeChangeLocModal() {
   document.getElementById('change-loc-modal').classList.remove('show');
@@ -1000,10 +998,19 @@ function closeChangeLocModal() {
 function saveChangeLocation() {
   const newLoc = document.getElementById('change-loc-input').value.trim();
   if (!newLoc) { showToast('⚠ Enter a location','#ffb800'); return; }
-  changeLocKeys.forEach(k=>{ if(rows[k]) rows[k].loc=newLoc; });
-  showToast(`📍 Moved ${changeLocKeys.length} item${changeLocKeys.length!==1?'s':''} to ${newLoc}`,'#4da6ff');
+  let moved = 0;
+  changeLocKeys.forEach(k=>{
+    if(rows[k]) { rows[k].loc=newLoc; moved++; }
+  });
+  showToast(`📍 Moved ${moved} item${moved!==1?'s':''} to ${newLoc}`,'#4da6ff');
   closeChangeLocModal();
-  if (changeLocCallback) changeLocCallback();
+  // Update box location search to show the NEW location
+  const searchInput = document.getElementById('bl-search');
+  if (searchInput && searchInput.value.trim()) {
+    searchInput.value = newLoc;
+    boxLocSearch();
+  }
+  renderTable(); updateStats();
 }
 
 function clearBoxLoc() {
