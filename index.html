@@ -295,11 +295,14 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
       <!-- Selection action bar -->
       <div id="bl-bbar" style="display:none;padding:6px 10px;background:rgba(0,229,160,.05);border:1px solid rgba(0,229,160,.18);border-radius:7px;margin-bottom:6px;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="font-size:12px;color:var(--accent);font-weight:600;" id="bl-bbar-lbl">0 selected</span>
-        <button class="bbar-btn bbo" onclick="lookupTableAction('order')">📦 Order</button>
-        <button class="bbar-btn bbu" onclick="lookupTableAction('unavail')">🚫 N/A</button>
-        <button class="bbar-btn bba" onclick="lookupTableAction('undo')">↩ Undo</button>
+        <button class="bbar-btn bbo"    onclick="lookupTableAction('order')">📦 Order</button>
+        <button class="bbar-btn bbu"    onclick="lookupTableAction('unavail')">🚫 N/A</button>
+        <button class="bbar-btn bba"    onclick="lookupTableAction('undo')">↩ Undo</button>
         <button class="bbar-btn bbcopy" onclick="lookupTableAction('copy')">⎘ Copy</button>
-        <button class="bbar-btn bbc" onclick="clearLookupSel()">✕ Clear</button>
+        <button class="bbar-btn bbnote" onclick="lookupTableAction('note')">📝 Note</button>
+        <button class="bbar-btn" style="border-color:var(--muted);color:var(--muted);" onclick="lookupTableAction('clearnote')">🗑 Clear Note</button>
+        <button class="bbar-btn" style="border-color:var(--ordered);color:var(--ordered);" onclick="lookupTableAction('changeloc')">📍 Change Location</button>
+        <button class="bbar-btn bbc"    onclick="clearLookupSel()">✕ Clear</button>
       </div>
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:auto;max-height:260px;">
         <table style="width:100%;border-collapse:collapse;" id="bulk-lookup-table">
@@ -359,8 +362,10 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
         <button class="bbar-btn bbo"    onclick="boxLocSelAction('order')">📦 Order</button>
         <button class="bbar-btn bbu"    onclick="boxLocSelAction('unavail')">🚫 N/A</button>
         <button class="bbar-btn bba"    onclick="boxLocSelAction('undo')">↩ Undo</button>
-        <button class="bbar-btn bbnote" onclick="boxLocNoteAll()">📝 Note</button>
-        <button class="bbar-btn bbc"    onclick="boxLocSelected.clear();boxLocLastIdx=-1;updateBoxLocBBar();document.querySelectorAll('#bl-result-body tr[data-rkey]').forEach(tr=>{const c=tr.querySelector('.cb');if(c)c.checked=false;tr.style.background='';});document.getElementById('bl-sel-all').checked=false;">✕ Clear</button>
+        <button class="bbar-btn bbnote" onclick="boxLocSelNote()">📝 Note</button>
+        <button class="bbar-btn" style="border-color:var(--muted);color:var(--muted);" onclick="boxLocSelClearNote()">🗑 Clear Note</button>
+        <button class="bbar-btn" style="border-color:var(--ordered);color:var(--ordered);" onclick="boxLocSelChangeLocation()">📍 Change Location</button>
+        <button class="bbar-btn bbc"    onclick="boxLocClearSel()">✕ Clear</button>
       </div>
 
       <div style="display:flex;gap:7px;flex-wrap:wrap;">
@@ -368,13 +373,15 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
         <button class="bbtn bb-ord"  style="flex:1;font-size:11px;" onclick="boxLocAction('order')">📦 All Ordered</button>
         <button class="bbtn"         style="flex:1;font-size:11px;border-color:var(--muted);color:var(--muted);" onclick="boxLocAction('undo')">↩ Reset All</button>
         <button class="bbtn bbnote"  style="flex:1;font-size:11px;" onclick="boxLocNoteAll()">📝 Note All</button>
+        <button class="bbtn"         style="flex:1;font-size:11px;border-color:var(--muted);color:var(--muted);" onclick="boxLocClearNoteAll()">🗑 Clear Notes</button>
+        <button class="bbtn"         style="flex:1;font-size:11px;border-color:var(--ordered);color:var(--ordered);" onclick="boxLocChangeLocationAll()">📍 Change Location</button>
       </div>
 
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:auto;max-height:330px;">
         <table style="width:100%;border-collapse:collapse;">
           <thead>
             <tr style="background:var(--surface2);">
-              <th style="padding:7px 10px;width:32px;border-bottom:1px solid var(--border);"><input type="checkbox" class="cb" id="bl-sel-all" onchange="toggleBoxLocSelAll(this)"/></th>
+              <th style="padding:7px 10px;width:32px;border-bottom:1px solid var(--border);"><input type="checkbox" class="cb" id="boxloc-sel-all" onchange="toggleBoxLocSelAll(this)"/></th>
               <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">UPC</th>
               <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">LPN</th>
               <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">Status</th>
@@ -436,6 +443,7 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
     <button class="bbar-btn bbcopy" onclick="tableAction('copy')">⎘ Copy</button>
     <button class="bbar-btn bbnote" onclick="tableAction('note')">📝 Note</button>
     <button class="bbar-btn" style="border-color:var(--muted);color:var(--muted);" onclick="tableAction('clearnote')">🗑 Clear Note</button>
+    <button class="bbar-btn" style="border-color:var(--ordered);color:var(--ordered);" onclick="tableAction('changeloc')">📍 Change Location</button>
     <button class="bbar-btn" style="border-color:var(--danger);color:var(--danger);" onclick="tableAction('delete')">🗑 Delete</button>
     <button class="bbar-btn bbc"    onclick="clearSel()">✕ Clear</button>
   </div>
@@ -492,6 +500,18 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
     <div class="modal-actions">
       <button class="mbtn mbtn-cancel" onclick="closeBulkNoteModal()">Cancel</button>
       <button class="mbtn mbtn-save"   onclick="saveBulkNote()">Apply to All Selected</button>
+    </div>
+  </div>
+</div>
+
+<!-- Change Location Modal -->
+<div class="modal-overlay" id="change-loc-modal">
+  <div class="modal">
+    <div><div class="modal-title">📍 Change Location</div><div class="modal-sub" id="change-loc-sub">Move selected items to a new location</div></div>
+    <input type="text" class="fi" id="change-loc-input" placeholder="e.g. A1, B2, P3..." onkeydown="if(event.key==='Enter')saveChangeLocation();" />
+    <div class="modal-actions">
+      <button class="mbtn mbtn-cancel" onclick="closeChangeLocModal()">Cancel</button>
+      <button class="mbtn mbtn-save"   onclick="saveChangeLocation()">Move Items</button>
     </div>
   </div>
 </div>
@@ -735,13 +755,33 @@ function lookupTableAction(type) {
     if (type==='copy') return;
   });
   if (type==='copy') {
-    const lines=['UPC\tLocation\tBox #\tPallet\tStatus\tRemaining'];
+    const lines=['UPC\tLPN\tLocation\tStatus\tRemaining'];
     lookupSelectedKeys.forEach(key=>{
       const r=rows[key]; if(!r) return;
       const st=getStatus(r);
       lines.push([r.upc,r.lpn||'',r.loc||'',st.label,globalRemainForUPC(r.upc)].join('\t'));
     });
     copyText(lines.join('\n'),`${lookupSelectedKeys.size} rows copied`); return;
+  }
+  if (type==='note') {
+    const modal = document.getElementById('bulk-note-modal');
+    modal._lookupKeys = [...lookupSelectedKeys];
+    document.getElementById('bulk-note-sub').textContent = `Applying to ${lookupSelectedKeys.size} item${lookupSelectedKeys.size!==1?'s':''}`;
+    buildChips('bulk-modal-chips','pickBulkChip');
+    document.getElementById('bulk-note-text').value='';
+    modal.classList.add('show');
+    setTimeout(()=>document.getElementById('bulk-note-text').focus(),100);
+    return;
+  }
+  if (type==='clearnote') {
+    let done=0;
+    lookupSelectedKeys.forEach(key=>{ if(rows[key]){rows[key].note='';done++;} });
+    showToast(`🗑 Cleared notes on ${done} item${done!==1?'s':''}`, '#00e5a0');
+    renderTable(); updateStats(); bulkLookupLive(); return;
+  }
+  if (type==='changeloc') {
+    openChangeLocModal([...lookupSelectedKeys], ()=>{ renderTable(); updateStats(); bulkLookupLive(); });
+    return;
   }
   const labels={order:'Toggled order',unavail:'Toggled N/A',undo:'Reset to Available'};
   showToast(`✓ ${labels[type]} on ${done} items`,'#00e5a0');
@@ -836,7 +876,7 @@ function handleBoxLocClick(event, idx, rkey) {
     if (boxLocSelected.has(rkey)) { boxLocSelected.delete(rkey); boxLocLastIdx=-1; }
     else { boxLocSelected.add(rkey); boxLocLastIdx=idx; }
   }
-  document.getElementById('bl-sel-all').checked = false;
+  const _bsa=document.getElementById('boxloc-sel-all'); if(_bsa)_bsa.checked=false;
   updateBoxLocBBar();
   // Update in-place
   document.querySelectorAll('#bl-result-body tr[data-rkey]').forEach(tr => {
@@ -887,15 +927,76 @@ function boxLocSelAction(type) {
 function boxLocAction(type) { boxLocSelAction(type); }
 
 function boxLocNoteAll() {
-  const keys = boxLocSelected.size > 0 ? [...boxLocSelected] : [...boxLocKeys];
+  const keys = [...boxLocKeys];
   if (!keys.length) return;
-  // Store the target keys on the modal, then open it
-  document.getElementById('bulk-note-modal')._boxLocKeys = keys;
+  const modal = document.getElementById('bulk-note-modal');
+  modal._boxLocKeys = keys;
   document.getElementById('bulk-note-sub').textContent = `Applying to ${keys.length} item${keys.length!==1?'s':''}`;
   buildChips('bulk-modal-chips','pickBulkChip');
   document.getElementById('bulk-note-text').value='';
-  document.getElementById('bulk-note-modal').classList.add('show');
+  modal.classList.add('show');
   setTimeout(()=>document.getElementById('bulk-note-text').focus(),100);
+}
+
+function boxLocSelNote() {
+  const keys = boxLocSelected.size>0 ? [...boxLocSelected] : [...boxLocKeys];
+  if (!keys.length) return;
+  const modal = document.getElementById('bulk-note-modal');
+  modal._boxLocKeys = keys;
+  document.getElementById('bulk-note-sub').textContent = `Applying to ${keys.length} item${keys.length!==1?'s':''}`;
+  buildChips('bulk-modal-chips','pickBulkChip');
+  document.getElementById('bulk-note-text').value='';
+  modal.classList.add('show');
+  setTimeout(()=>document.getElementById('bulk-note-text').focus(),100);
+}
+
+function boxLocSelClearNote() {
+  const keys = boxLocSelected.size>0 ? [...boxLocSelected] : [...boxLocKeys];
+  if (!keys.length) return;
+  keys.forEach(k=>{ if(rows[k]) rows[k].note=''; });
+  showToast(`🗑 Cleared notes on ${keys.length} items`,'#00e5a0');
+  renderTable(); boxLocSearch();
+}
+function boxLocClearNoteAll() { boxLocSelClearNote(); }
+
+function boxLocSelChangeLocation() {
+  const keys = boxLocSelected.size>0 ? [...boxLocSelected] : [...boxLocKeys];
+  openChangeLocModal(keys, ()=>{ renderTable(); updateStats(); boxLocSearch(); });
+}
+function boxLocChangeLocationAll() { boxLocSelChangeLocation(); }
+
+function boxLocClearSel() {
+  boxLocSelected.clear(); boxLocLastIdx=-1;
+  updateBoxLocBBar();
+  document.querySelectorAll('#bl-result-body tr[data-rkey]').forEach(tr=>{
+    const c=tr.querySelector('.cb'); if(c) c.checked=false;
+    tr.style.background='';
+  });
+  const sa = document.getElementById('boxloc-sel-all');
+  if (sa) sa.checked=false;
+}
+
+// ── Change Location Modal ──────────────────────────────────
+let changeLocKeys = [];
+let changeLocCallback = null;
+function openChangeLocModal(keys, callback) {
+  changeLocKeys = keys;
+  changeLocCallback = callback || (()=>{ renderTable(); updateStats(); });
+  document.getElementById('change-loc-modal').classList.add('show');
+  document.getElementById('change-loc-input').value='';
+  setTimeout(()=>document.getElementById('change-loc-input').focus(),100);
+}
+function closeChangeLocModal() {
+  document.getElementById('change-loc-modal').classList.remove('show');
+  changeLocKeys=[]; changeLocCallback=null;
+}
+function saveChangeLocation() {
+  const newLoc = document.getElementById('change-loc-input').value.trim();
+  if (!newLoc) { showToast('⚠ Enter a location','#ffb800'); return; }
+  changeLocKeys.forEach(k=>{ if(rows[k]) rows[k].loc=newLoc; });
+  showToast(`📍 Moved ${changeLocKeys.length} item${changeLocKeys.length!==1?'s':''} to ${newLoc}`,'#4da6ff');
+  closeChangeLocModal();
+  if (changeLocCallback) changeLocCallback();
 }
 
 function clearBoxLoc() {
@@ -1102,7 +1203,10 @@ function tableAction(type) {
     });
     copyText(lines.join('\n'), `${selectedKeys.size} rows copied`); return;
 
-  } else if (type==='clearnote') {
+  } else if (type==='changeloc') {
+    const keys = [...selectedKeys];
+    openChangeLocModal(keys, ()=>{ renderTable(); updateStats(); });
+    return;
     let done=0;
     selectedKeys.forEach(key=>{ if(rows[key]&&rows[key].note){rows[key].note='';done++;} });
     showToast(`🗑 Cleared notes on ${done} row${done!==1?'s':''}`, '#00e5a0');
@@ -1182,20 +1286,22 @@ function openBulkNoteModal(){
 function pickBulkChip(el,text){document.querySelectorAll('#bulk-modal-chips .chip').forEach(c=>c.classList.remove('active-chip'));el.classList.add('active-chip');document.getElementById('bulk-note-text').value=text;}
 
 function saveBulkNote(){
-  const note = document.getElementById('bulk-note-text').value.trim();
+  const note  = document.getElementById('bulk-note-text').value.trim();
   const modal = document.getElementById('bulk-note-modal');
-  const boxKeys = modal._boxLocKeys;
+  const boxKeys    = modal._boxLocKeys;
+  const lookupKeys = modal._lookupKeys;
   if (boxKeys && boxKeys.length) {
     boxKeys.forEach(k=>{ if(rows[k]) rows[k].note=note; });
     showToast(`✓ Note set on ${boxKeys.length} items`,'#00e5a0');
-    modal._boxLocKeys = null;
-    closeBulkNoteModal();
-    renderTable(); boxLocSearch();
+    modal._boxLocKeys=null; closeBulkNoteModal(); renderTable(); boxLocSearch();
+  } else if (lookupKeys && lookupKeys.length) {
+    lookupKeys.forEach(k=>{ if(rows[k]) rows[k].note=note; });
+    showToast(`✓ Note set on ${lookupKeys.length} items`,'#00e5a0');
+    modal._lookupKeys=null; closeBulkNoteModal(); renderTable(); bulkLookupLive();
   } else {
     selectedKeys.forEach(k=>{ if(rows[k]) rows[k].note=note; });
     showToast(`✓ Note set on ${selectedKeys.size} rows`,'#00e5a0');
-    closeBulkNoteModal();
-    renderTable();
+    closeBulkNoteModal(); renderTable();
   }
 }
 
@@ -1203,7 +1309,8 @@ function closeBulkNoteModal(){
   const modal = document.getElementById('bulk-note-modal');
   modal.classList.remove('show');
   modal.removeAttribute('data-mode');
-  modal._boxLocKeys = null;
+  modal._boxLocKeys  = null;
+  modal._lookupKeys  = null;
 }
 document.getElementById('bulk-note-modal').addEventListener('click',e=>{if(e.target===document.getElementById('bulk-note-modal'))closeBulkNoteModal();});
 
