@@ -228,6 +228,7 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
     <div class="hstat"><div class="hstat-val" id="s-total">0</div><div class="hstat-lbl">Unique Items</div></div>
     <div class="hstat"><div class="hstat-val" id="s-rows">0</div><div class="hstat-lbl">Location Rows</div></div>
     <div class="hstat"><div class="hstat-val" id="s-remain">0</div><div class="hstat-lbl">Total Remain</div></div>
+    <button class="hbtn" onclick="resetAllChanges()" style="border-color:var(--warn);color:var(--warn);">↩ Reset All</button>
     <button class="hbtn" onclick="exportCSV()">⬇ Export CSV</button>
   </div>
 </div>
@@ -434,6 +435,7 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
     <button class="bbar-btn bba"    onclick="tableAction('scan')">▶ +Qty</button>
     <button class="bbar-btn bbcopy" onclick="tableAction('copy')">⎘ Copy</button>
     <button class="bbar-btn bbnote" onclick="tableAction('note')">📝 Note</button>
+    <button class="bbar-btn" style="border-color:var(--danger);color:var(--danger);" onclick="tableAction('delete')">🗑 Delete</button>
     <button class="bbar-btn bbc"    onclick="clearSel()">✕ Clear</button>
   </div>
   <div class="twrap">
@@ -1099,6 +1101,16 @@ function tableAction(type) {
     });
     copyText(lines.join('\n'), `${selectedKeys.size} rows copied`); return;
 
+  } else if (type==='delete') {
+    const count = selectedKeys.size;
+    if (!count) return;
+    // Confirm before deleting
+    const confirmed = confirm(`Delete ${count} selected row${count!==1?'s':''}? This cannot be undone.`);
+    if (!confirmed) return;
+    selectedKeys.forEach(key=>{ delete rows[key]; });
+    selectedKeys.clear(); lastClickedIndex=-1;
+    showToast(`🗑 Deleted ${count} row${count!==1?'s':''}`, '#ff4466');
+
   } else if (type==='note') { openBulkNoteModal(); return; }
 
   renderTable(); updateStats();
@@ -1301,6 +1313,18 @@ function updateStats() {
   el.style.color=totalRem<0?'var(--danger)':totalRem===0?'var(--muted)':'var(--accent)';
 }
 
+function resetAllChanges() {
+  const confirmed = confirm('Reset ALL orders and N/A marks back to Available? This keeps all scanned items but clears every order and N/A. Cannot be undone.');
+  if (!confirmed) return;
+  let count = 0;
+  Object.values(rows).forEach(r => {
+    if (r.order > 0 || r.unavail > 0) {
+      r.order = 0; r.unavail = 0; count++;
+    }
+  });
+  showToast(`↩ Reset ${count} row${count!==1?'s':''} back to Available`, '#00e5a0');
+  renderTable(); updateStats();
+}
 function setFilter(f){currentFilter=f;['all','remain','neg','nolpn','noted','ordered','unavail','avail'].forEach(id=>document.getElementById('f-'+id)?.classList.toggle('active',id===f));renderTable();}
 function sortBy(col){sortDir=sortCol===col?sortDir*-1:1;sortCol=col;renderTable();}
 
