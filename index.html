@@ -1353,65 +1353,121 @@ function getVisible() {
   return data;
 }
 
+// ── Virtual rendering (handles 70k+ rows) ─────────────────
+const PAGE_SIZE = 80;
+let visibleData  = [];
+let renderedCount = 0;
+
+function buildLocGroups(data) {
+  // Pre-compute per-location group sizes and remains (avoid O(n²) filter inside loop)
+  const map = {};
+  data.forEach(r => {
+    const loc = r.locKey;
+    if (!map[loc]) map[loc] = { count:0, rem:0 };
+    map[loc].count++;
+    map[loc].rem += getRemain(r);
+  });
+  return map;
+}
+
 function renderTable() {
-  const data=getVisible();
-  const tbody=document.getElementById('tbody');
-  const empty=document.getElementById('empty');
-  document.getElementById('row-count').textContent=`${data.length} row${data.length!==1?'s':''}`;
-  if(!data.length){tbody.innerHTML='';empty.style.display='flex';return;}
-  empty.style.display='none';
+  visibleData   = getVisible();
+  renderedCount = 0;
+  const tbody = document.getElementById('tbody');
+  const empty = document.getElementById('empty');
+  const total = visibleData.length;
+  document.getElementById('row-count').textContent = `${total} row${total!==1?'s':''}`;
+  tbody.innerHTML = '';
+  if (!total) { empty.style.display='flex'; return; }
+  empty.style.display = 'none';
+  renderMoreRows();
+}
 
-  // Group by location for the header rows
-  let html='', lastLoc=null, rowIdx=0;
+function renderMoreRows() {
+  if (renderedCount >= visibleData.length) return;
+  const data  = visibleData;
+  const end   = Math.min(renderedCount + PAGE_SIZE, data.length);
+  const locGrp = buildLocGroups(data);
+  const frag  = document.createDocumentFragment();
+  let lastLoc = renderedCount > 0 ? data[renderedCount-1].locKey : null;
 
-  data.forEach(r=>{
+  // Pre-compute UPC aggregates for visible slice
+  const upcCache = {};
+  function getUPCAgg(upc) {
+    if (!upcCache[upc]) {
+      const all = Object.values(rows).filter(x=>x.upc===upc);
+      upcCache[upc] = {
+        qty:   all.length,
+        order: all.reduce((s,x)=>s+x.order,0),
+        una:   all.reduce((s,x)=>s+x.unavail,0),
+      };
+    }
+    return upcCache[upc];
+  }
+
+  for (let i = renderedCount; i < end; i++) {
+    const r   = data[i];
     const rem = getRemain(r);
     const rc  = rem>0?'rpos':rem<0?'rneg':'rzero';
     const loc = r.locKey;
     const sk  = r._key.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const idx = rowIdx++;
+    const agg = getUPCAgg(r.upc);
 
-    // Location group header
-    if(loc!==lastLoc){
-      lastLoc=loc;
-      const grp=data.filter(d=>d.locKey===loc);
-      const grpQty=grp.reduce((s,d)=>s+d.qty,0);
-      const grpRem=grp.reduce((s,d)=>s+getRemain(d),0);
-      const grc=grpRem>0?'rpos':grpRem<0?'rneg':'rzero';
-      const ls=loc.replace(/'/g,"\\'");
-      const grpItemCount=grp.length;  // pure count of individual items in this location
-      html+=`<tr class="loc-hdr">
+    if (loc !== lastLoc) {
+      lastLoc = loc;
+      const g   = locGrp[loc];
+      const grc = g.rem>0?'rpos':g.rem<0?'rneg':'rzero';
+      const ls  = loc.replace(/'/g,"\\'");
+      const hdr = document.createElement('tr');
+      hdr.className = 'loc-hdr';
+      hdr.innerHTML = `
         <td colspan="2" style="padding:8px 10px 5px;border-bottom:none;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;color:var(--accent);">${loc}</td>
-        <td colspan="3" style="padding:8px 10px 5px;border-bottom:none;font-size:10px;color:var(--muted);">${grpItemCount} item${grpItemCount!==1?'s':''}</td>
+        <td colspan="3" style="padding:8px 10px 5px;border-bottom:none;font-size:10px;color:var(--muted);">${g.count} item${g.count!==1?'s':''}</td>
         <td colspan="4" style="padding:8px 10px 5px;border-bottom:none;text-align:right;">
-          <span class="${grc}" style="font-size:10px;font-weight:700;">Remain: ${grpRem}</span>
+          <span class="${grc}" style="font-size:10px;font-weight:700;">Remain: ${g.rem}</span>
           <button onclick="copyLocGroup('${ls}')" style="margin-left:8px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:2px 7px;border-radius:4px;font-size:9px;cursor:pointer;font-family:'DM Sans',sans-serif;">⎘ Copy group</button>
         </td>
-        <td style="border-bottom:none;"></td>
-      </tr>`;
+        <td style="border-bottom:none;"></td>`;
+      frag.appendChild(hdr);
     }
 
-    const noteDisplay=r.note
-      ?`<span class="note-cell has-note" onclick="openNoteModal('${sk}')" title="${r.note.replace(/'/g,'&apos;')}">📝 ${r.note}</span>`
-      :`<span class="note-cell" onclick="openNoteModal('${sk}')">+ add note</span>`;
-
+    const noteDisplay = r.note
+      ? `<span class="note-cell has-note" onclick="openNoteModal('${sk}')" title="${r.note.replace(/'/g,'&apos;')}">📝 ${r.note}</span>`
+      : `<span class="note-cell" onclick="openNoteModal('${sk}')">+ add note</span>`;
     const st = getStatus(r);
 
-    html+=`<tr class="${selectedKeys.has(r._key)?'sel':''}" style="position:relative;" data-key="${r._key}" data-idx="${idx}">
-      <td><input type="checkbox" class="cb" ${selectedKeys.has(r._key)?'checked':''} onclick="handleRowClick(event,'${sk}',${idx})"/></td>
+    const tr = document.createElement('tr');
+    if (selectedKeys.has(r._key)) tr.className = 'sel';
+    tr.style.position = 'relative';
+    tr.dataset.key = r._key;
+    tr.dataset.idx = i;
+    tr.innerHTML = `
+      <td><input type="checkbox" class="cb" ${selectedKeys.has(r._key)?'checked':''} onclick="handleRowClick(event,'${sk}',${i})"/></td>
       <td class="td-upc editable" ondblclick="editCell(event,'${sk}','upc')">${r.upc}</td>
       <td class="${r.lpn?'td-lpn':'td-empty'} editable" ondblclick="editCell(event,'${sk}','lpn')">${r.lpn||'—'}</td>
       <td class="td-loc editable" ondblclick="editCell(event,'${sk}','loc')">${loc}</td>
-      <td class="td-qty" style="font-weight:700;">${totalQtyForUPC(r.upc)}</td>
-      <td class="td-ord">${Object.values(rows).filter(x=>x.upc===r.upc).reduce((s,x)=>s+x.order,0)}</td>
-      <td class="td-una">${Object.values(rows).filter(x=>x.upc===r.upc).reduce((s,x)=>s+x.unavail,0)}</td>
+      <td class="td-qty" style="font-weight:700;">${agg.qty}</td>
+      <td class="td-ord">${agg.order}</td>
+      <td class="td-una">${agg.una}</td>
       <td class="td-rem ${rc}">${rem}</td>
       <td><span class="status-badge ${st.cls}">${st.icon} ${st.label}</span></td>
       <td>${noteDisplay}</td>
-      <td style="position:relative;width:0;padding:0;border:none;"><button class="copy-row-btn" onclick="copyRow('${sk}')">⎘ Copy</button></td>
-    </tr>`;
+      <td style="position:relative;width:0;padding:0;border:none;"><button class="copy-row-btn" onclick="copyRow('${sk}')">⎘ Copy</button></td>`;
+    frag.appendChild(tr);
+  }
+
+  document.getElementById('tbody').appendChild(frag);
+  renderedCount = end;
+}
+
+// Infinite scroll
+const _twrap = document.querySelector('.twrap');
+if (_twrap) {
+  _twrap.addEventListener('scroll', () => {
+    if (renderedCount >= visibleData.length) return;
+    const { scrollTop, scrollHeight, clientHeight } = _twrap;
+    if (scrollTop + clientHeight >= scrollHeight - 300) renderMoreRows();
   });
-  tbody.innerHTML=html;
 }
 
 function logActivity(upc, lpn, type, loc, qty=1) {
