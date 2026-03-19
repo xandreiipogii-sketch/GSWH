@@ -980,12 +980,19 @@ function boxLocClearSel() {
 let changeLocKeys = [];
 let changeLocCallback = null;
 function openChangeLocModal(keys, callback) {
+  if (!keys || !keys.length) { showToast('⚠ Select items first','#ffb800'); return; }
   changeLocKeys = keys;
   changeLocCallback = callback || (()=>{ renderTable(); updateStats(); });
+  document.getElementById('change-loc-sub').textContent = `Moving ${keys.length} item${keys.length!==1?'s':''} to a new location`;
   document.getElementById('change-loc-modal').classList.add('show');
   document.getElementById('change-loc-input').value='';
   setTimeout(()=>document.getElementById('change-loc-input').focus(),100);
 }
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('change-loc-modal').addEventListener('click',e=>{
+    if(e.target===document.getElementById('change-loc-modal')) closeChangeLocModal();
+  });
+});
 function closeChangeLocModal() {
   document.getElementById('change-loc-modal').classList.remove('show');
   changeLocKeys=[]; changeLocCallback=null;
