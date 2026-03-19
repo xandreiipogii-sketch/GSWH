@@ -435,6 +435,7 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
     <button class="bbar-btn bba"    onclick="tableAction('scan')">▶ +Qty</button>
     <button class="bbar-btn bbcopy" onclick="tableAction('copy')">⎘ Copy</button>
     <button class="bbar-btn bbnote" onclick="tableAction('note')">📝 Note</button>
+    <button class="bbar-btn" style="border-color:var(--muted);color:var(--muted);" onclick="tableAction('clearnote')">🗑 Clear Note</button>
     <button class="bbar-btn" style="border-color:var(--danger);color:var(--danger);" onclick="tableAction('delete')">🗑 Delete</button>
     <button class="bbar-btn bbc"    onclick="clearSel()">✕ Clear</button>
   </div>
@@ -1100,6 +1101,11 @@ function tableAction(type) {
       lines.push([r.upc,r.lpn||'',fmtLoc(r.loc),r.qty,r.order,r.unavail,getRemain(r)].join('\t'));
     });
     copyText(lines.join('\n'), `${selectedKeys.size} rows copied`); return;
+
+  } else if (type==='clearnote') {
+    let done=0;
+    selectedKeys.forEach(key=>{ if(rows[key]&&rows[key].note){rows[key].note='';done++;} });
+    showToast(`🗑 Cleared notes on ${done} row${done!==1?'s':''}`, '#00e5a0');
 
   } else if (type==='delete') {
     const count = selectedKeys.size;
