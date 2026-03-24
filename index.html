@@ -542,6 +542,9 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
     <button class="fbtn"        id="f-ordered" onclick="setFilter('ordered')" style="border-color:var(--ordered);color:var(--ordered)">Ordered</button>
     <button class="fbtn"        id="f-unavail" onclick="setFilter('unavail')" style="border-color:var(--unavail);color:var(--unavail)">N/A</button>
     <button class="fbtn"        id="f-avail"   onclick="setFilter('avail')"   style="border-color:var(--accent);color:var(--accent)">Available</button>
+    <select id="f-sheet-loc" onchange="setSheetLocFilter(this.value)" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:4px 8px;border-radius:6px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;outline:none;max-width:120px;">
+      <option value="">All Sheets</option>
+    </select>
     <span class="cnt" id="row-count">0 rows</span>
   </div>
   <!-- Pagination -->
@@ -688,6 +691,7 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
 let rows      = {};   // key → { upc, lpn, loc, qty, order, unavail, note }
 let activity  = [];
 let currentFilter = 'all';
+let currentSheetLoc = '';
 let sortCol = 'locKey', sortDir = 1;
 let selectedKeys = new Set();
 let editingNoteKey = null;
@@ -1906,6 +1910,25 @@ function dbGoPage(p) {
   loadDbPage(p);
 }
 
+function setSheetLocFilter(val) {
+  currentSheetLoc = val;
+  loadDbPage(1);
+}
+
+async function populateSheetLocFilter() {
+  try {
+    // Get unique sheet_loc values
+    const d = await pbReq('/api/collections/inventory/records?perPage=500&fields=sheet_loc&skipTotal=1');
+    const unique = [...new Set(d.items.map(i=>i.sheet_loc||'').filter(Boolean))].sort();
+    const sel = document.getElementById('f-sheet-loc');
+    if (!sel) return;
+    // Keep first "All Sheets" option
+    sel.innerHTML = '<option value="">All Sheets</option>' +
+      unique.map(s=>`<option value="${s.replace(/"/g,'&quot;')}">${s}</option>`).join('');
+    if (currentSheetLoc) sel.value = currentSheetLoc;
+  } catch(e) {}
+}
+
 function setFilter(f) {
   currentFilter=f;
   ['all','remain','neg','nolpn','noted','ordered','unavail','avail'].forEach(id=>
@@ -2371,6 +2394,7 @@ async function pbLoad() {
   dbStatus('ok', `DB Online · ${dbTotalItems.toLocaleString()} items · Live`);
   await loadDbPage(1);
   updateStats();
+  populateSheetLocFilter();
 }
 
 // Load a specific page from PocketBase into rows
@@ -2385,10 +2409,11 @@ async function loadDbPage(page) {
   if (currentFilter==='avail')   filters.push('order_count=0&&unavail=0');
   if (currentFilter==='noted')   filters.push('note!=""');
   if (currentFilter==='nolpn')   filters.push('lpn=""');
+  if (currentSheetLoc) filters.push(`sheet_loc="${currentSheetLoc}"`);
   const filterStr = filters.length ? encodeURIComponent(filters.join('&&')) : '';
   const sortStr = sortCol==='locKey'?'loc':sortCol==='remain'?'order_count':sortCol;
   const sortDir2 = sortDir===1?'+':'-';
-  const url = `/api/collections/inventory/records?page=${page}&perPage=${DB_PAGE_SIZE}&sort=${sortDir2}${sortStr}${filterStr?'&filter='+filterStr:''}`;
+  const url = `/api/collections/inventory/records?page=${page}&perPage=${DB_PAGE_SIZE}&sort=${sortDir2}${sortStr},+id${filterStr?'&filter='+filterStr:''}`;
   
   dbStatus('connecting','Loading...');
   const d = await pbReq(url);
