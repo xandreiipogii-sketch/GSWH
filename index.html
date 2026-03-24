@@ -86,8 +86,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .left{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;box-shadow:2px 0 8px rgba(0,0,0,.04);}
 
 /* Tabs */
-.tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;padding:6px 8px;gap:2px;background:var(--surface);}
-.tab{flex:1;padding:8px 4px;text-align:center;font-size:11px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:none;border-radius:6px;transition:all .15s;}
+.tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;padding:4px 6px;gap:2px;background:var(--surface);}
+.tab{flex:1;padding:7px 4px;text-align:center;font-size:10px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:none;border-radius:6px;transition:all .15s;white-space:nowrap;}
 .tab.active{color:var(--accent);background:rgba(0,229,160,.1);}
 .tc{display:none;flex-direction:column;gap:13px;padding:18px;overflow-y:auto;flex:1;}
 .tc.active{display:flex;}
@@ -319,8 +319,8 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
 <div class="left">
   <div class="tabs">
     <div class="tab active" onclick="switchTab('scan')">Scan</div>
-    <div class="tab" onclick="switchTab('bulk')">Bulk Lookup</div>
-    <div class="tab" onclick="switchTab('boxloc')">Box Location</div>
+    <div class="tab" onclick="switchTab('bulk')">Bulk</div>
+    <div class="tab" onclick="switchTab('boxloc')">Box Loc</div>
     <div class="tab" onclick="switchTab('upload')">Upload</div>
     <div class="tab" onclick="switchTab('activity')">Activity</div>
   </div>
