@@ -1,18 +1,69 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BoxScan — Inventory Tracker v3</title>
+<title>GoodSprings Inventory</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c26;--border:#2a2a38;--accent:#00e5a0;--warn:#ffb800;--text:#e8e8f0;--muted:#5a5a72;--danger:#ff4466;--ordered:#4da6ff;--unavail:#ff6b35;}
-:root.light{--bg:#f4f5f7;--surface:#ffffff;--surface2:#eef0f4;--border:#d0d5dd;--accent:#00a572;--warn:#d97706;--text:#1a1a2e;--muted:#6b7280;--danger:#dc2626;--ordered:#2563eb;--unavail:#ea580c;}
-:root.light .a-scan{color:#fff;}
-:root.light .status-badge.savail{background:rgba(0,165,114,.15);color:#00a572;border-color:rgba(0,165,114,.3);}
-:root.light .status-badge.sorder{background:rgba(37,99,235,.12);color:#2563eb;border-color:rgba(37,99,235,.25);}
-:root.light .status-badge.sunavail{background:rgba(234,88,12,.12);color:#ea580c;border-color:rgba(234,88,12,.25);}
-:root.light td,th{color:var(--text);}
+:root.light{
+  --bg:#f0f2f5;
+  --surface:#ffffff;
+  --surface2:#e8ebf0;
+  --border:#cbd5e1;
+  --accent:#007a55;
+  --warn:#b45309;
+  --text:#0f172a;
+  --muted:#64748b;
+  --danger:#b91c1c;
+  --ordered:#1d4ed8;
+  --unavail:#c2410c;
+}
+:root.light body { background:var(--bg); color:var(--text); }
+:root.light .header { background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.08); border-bottom:1px solid var(--border); }
+:root.light .left { background:#fff; border-right:1px solid var(--border); }
+:root.light .tab { color:var(--muted); }
+:root.light .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+:root.light .fi { background:#fff; border-color:var(--border); color:var(--text); }
+:root.light .fi::placeholder { color:#94a3b8; }
+:root.light .bta { background:#fff; border-color:var(--border); color:var(--text); }
+:root.light th { color:#475569; background:#f8fafc; }
+:root.light td { color:var(--text); border-bottom-color:#e2e8f0; }
+:root.light tr:hover td { background:#f8fafc; }
+:root.light .td-upc { color:#0f172a; }
+:root.light .td-lpn { color:var(--ordered); }
+:root.light .td-loc { color:#475569; }
+:root.light .td-qty { color:var(--accent); }
+:root.light .td-ord { color:var(--ordered); }
+:root.light .td-una { color:var(--unavail); }
+:root.light .td-empty { color:#94a3b8; }
+:root.light .note-cell { color:#64748b; }
+:root.light .note-cell.has-note { color:var(--warn); }
+:root.light .loc-hdr td { background:rgba(0,122,85,.05); border-top:2px solid rgba(0,122,85,.2); }
+:root.light .loc-hdr .rpos { color:var(--accent); }
+:root.light .status-badge.savail { background:#dcfce7; color:#15803d; border-color:#bbf7d0; }
+:root.light .status-badge.sorder { background:#dbeafe; color:#1d4ed8; border-color:#bfdbfe; }
+:root.light .status-badge.sunavail { background:#ffedd5; color:#c2410c; border-color:#fed7aa; }
+:root.light .status-badge.sneg { background:#fee2e2; color:#b91c1c; border-color:#fecaca; }
+:root.light .hbtn { border-color:var(--border); color:var(--text); background:#fff; }
+:root.light .hbtn:hover { border-color:var(--accent); color:var(--accent); }
+:root.light .bbar { background:#fff; border-top:1px solid var(--border); }
+:root.light .bbar-btn { color:var(--text); border-color:var(--border); }
+:root.light #db-status { background:#f8fafc; }
+:root.light .twrap { background:#fff; }
+:root.light .modal { background:#fff; border:1px solid var(--border); box-shadow:0 8px 32px rgba(0,0,0,.12); }
+:root.light .modal-title { color:var(--text); }
+:root.light .modal-sub { color:var(--muted); }
+:root.light .mbtn-cancel { background:#f1f5f9; color:var(--text); border-color:var(--border); }
+:root.light .mbtn-save { background:var(--accent); color:#fff; }
+:root.light .search-wrap input { background:#fff; }
+:root.light .filter-btn { color:var(--muted); border-color:var(--border); }
+:root.light .a-scan { color:#fff; }
+:root.light .bb-scan { color:#fff; }
+:root.light .upload-zone { border-color:var(--border); background:#f8fafc; }
+:root.light .uprev { background:#f0fdf4; border-color:#bbf7d0; }
+:root.light #bg-upload { background:#fff; box-shadow:0 4px 20px rgba(0,0,0,.1); }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
 
@@ -2236,7 +2287,13 @@ function toggleTheme() {
 
 function loadTheme() {
   const saved = localStorage.getItem('boxscan_theme');
-  if (saved === 'light') {
+  // Default is light — only switch to dark if explicitly saved
+  if (saved === 'dark') {
+    document.documentElement.classList.remove('light');
+    const btn = document.getElementById('theme-toggle');
+    if (btn) btn.textContent = '☀️ Light';
+  } else {
+    // Light is default
     document.documentElement.classList.add('light');
     const btn = document.getElementById('theme-toggle');
     if (btn) btn.textContent = '🌙 Dark';
