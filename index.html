@@ -3,10 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BoxScan — Inventory Tracker</title>
+<title>BoxScan — Inventory Tracker v3</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c26;--border:#2a2a38;--accent:#00e5a0;--warn:#ffb800;--text:#e8e8f0;--muted:#5a5a72;--danger:#ff4466;--ordered:#4da6ff;--unavail:#ff6b35;}
+:root.light{--bg:#f4f5f7;--surface:#ffffff;--surface2:#eef0f4;--border:#d0d5dd;--accent:#00a572;--warn:#d97706;--text:#1a1a2e;--muted:#6b7280;--danger:#dc2626;--ordered:#2563eb;--unavail:#ea580c;}
+:root.light .a-scan{color:#fff;}
+:root.light .status-badge.savail{background:rgba(0,165,114,.15);color:#00a572;border-color:rgba(0,165,114,.3);}
+:root.light .status-badge.sorder{background:rgba(37,99,235,.12);color:#2563eb;border-color:rgba(37,99,235,.25);}
+:root.light .status-badge.sunavail{background:rgba(234,88,12,.12);color:#ea580c;border-color:rgba(234,88,12,.25);}
+:root.light td,th{color:var(--text);}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
 
@@ -124,9 +130,25 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 /* Table */
 .twrap{overflow-y:auto;flex:1;}
-table{width:100%;border-collapse:collapse;}
+table{width:100%;border-collapse:collapse;table-layout:fixed;}
+/* Column widths */
+th:nth-child(1),td:nth-child(1){width:32px;}   /* checkbox */
+th:nth-child(2),td:nth-child(2){width:140px;}  /* UPC */
+th:nth-child(3),td:nth-child(3){width:120px;}  /* LPN */
+th:nth-child(4),td:nth-child(4){width:90px;}   /* Location */
+th:nth-child(5),td:nth-child(5){width:60px;}   /* Qty */
+th:nth-child(6),td:nth-child(6){width:60px;}   /* Ordered */
+th:nth-child(7),td:nth-child(7){width:60px;}   /* Not Avail */
+th:nth-child(8),td:nth-child(8){width:60px;}   /* Remain */
+th:nth-child(9),td:nth-child(9){width:100px;}  /* Status */
+th:nth-child(10),td:nth-child(10){width:110px;} /* Item Status */
+th:nth-child(11),td:nth-child(11){width:120px;} /* Note */
+th:nth-child(12),td:nth-child(12){width:90px;}  /* Sheet Location */
+th:nth-child(13),td:nth-child(13){width:0;padding:0;border:none;} /* copy btn */
+/* Overflow handling */
+td,th{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 thead{position:sticky;top:0;z-index:10;background:var(--surface2);}
-th{padding:9px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;}
+th{padding:9px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;overflow:hidden;text-overflow:ellipsis;}
 th:hover{color:var(--text);}th.chk{width:32px;cursor:default;}
 td{padding:8px 10px;font-size:11px;border-bottom:1px solid rgba(42,42,56,.5);font-family:'Space Mono',monospace;vertical-align:middle;}
 tr:hover td{background:rgba(255,255,255,.02);}
@@ -160,6 +182,10 @@ tr.sel td{background:rgba(0,229,160,.04);}
 .qpcancel:hover{color:var(--danger);}
 
 /* Note cell */
+.item-status-sel{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:2px 6px;font-size:10px;font-family:'DM Sans',sans-serif;cursor:pointer;outline:none;}
+.item-status-sel:focus{border-color:var(--accent);}
+.loc-status-avail{color:var(--accent);}
+.loc-status-unavail{color:var(--danger);}
 .note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:10px;font-family:'DM Sans',sans-serif;cursor:pointer;}
 .note-cell:hover{color:var(--text);}
 .note-cell.has-note{color:var(--warn);}
@@ -223,13 +249,15 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
 
 <!-- Header -->
 <div class="header">
-  <div class="logo">Box<span>Scan</span></div>
+  <img src="data:image/png;base64,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Uq2gXsCP5rpn5c7jOR0H3f5XxoCxODhdapm7w+gaf/t/CptXnLVMqOFT8secmT8CCwqJZVnV8kSbTltZa7XFSAguaN557uPNbRfLQslddTVGmtVwWyRRzm5ycn1ZlERbTEIiIAiIgCIiAIiIAiIgCIiAIiIDW6ktFJfrHWWeuYH09XEY3jtnkR5g4I9F4p1VZK3Tmoayy3BuJ6WTdJxwe08WuHkRgr3QVUPyjdCOv9jGorXDvXK3RnxI2jjPBzI9W8SPLI7KXh3+lPZ9GQM7H9SHEuqPMSJwPI5HdFdnPGSrA2ObR6jRFyNNWGWostS/M8Q4mJ3LxGD8MjqPMKALBWFlcbI8MjZVbKuXFE900FXbb7aY6uinhraKpZlr2HeY9p6KFak0jPSufUWwOnh4kx/aZ5DuF5y0FrvUGi6vxLVU79NI7M9JN70Unnj7LvMcfVeidn21/Tmq6mC2vjnt9zlO62nkaXtef7XtH6gLlNY0KvKhtYunR90dVpusyqknB7Pun3IycgkEEEcwit2vstsrzvVVHG9/3sYP4hfNBp+0UL9+noow/wC87Lj+a4Z+x13HysXD+51n/Ya+Hdwe5ALRpi515D3R+zQ/flGCfQKa2bS9rt2H+F7RMPty8ceg5Bb0DCyulwNAw8Pnw8UvLKbK1S/J5N7LwjCyiHmrwrjKIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIDrXGkhrqOSlnbmORuHKIDTeoKMPp7bcwKck4BcW/lxx8FOEUDL0+nKalPdNd09iRRlWUpqPR+eZD7No2GGoFRc5hVPBz4YB3c+ZP1lLWsDRgAADkAvpMrZiYNGJDhqjt/L+5jdk2Xvex7hZRFLNIREQBERAEREAREQBERAEREAREQBERAFhwyMLKFAeXPlAbOzpu7O1BaYf/B6x/0jGjhTSnp5Nd07Hh2VTr3jcaGluNFNRVsEdRTzsMckcjctc08wV512gbCrvSVclVpJza6keS4UksgbNEOwJ4PHqQfVWmLlrbhmymzMFuTlWimka1z3tYxpc9xAa0cSSegHVWRprYtre6VjY6+ijtFPn35qiRriB5NaSSfw9Vfez/ZrprR8TZKSm9quGMPrahoMh/y9GD0W+7MrhyXMj0YFlnXkiktn+xG/3x0dZfnGzUJ47jhmoePJvJn+rj5L0Do/RmndJ0ns9kt8cDnDEkzvflk/zPPE+nLyUha0DkFlVVuTOzqXFGLXSuS5mFlEWkkhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAf//Z" style="height:44px;object-fit:contain;background:#fff;border-radius:8px;padding:4px 10px;" alt="GoodSprings" />
   <div class="hright">
-    <div class="hstat"><div class="hstat-val" id="s-total">0</div><div class="hstat-lbl">Unique Items</div></div>
-    <div class="hstat"><div class="hstat-val" id="s-rows">0</div><div class="hstat-lbl">Location Rows</div></div>
-    <div class="hstat"><div class="hstat-val" id="s-remain">0</div><div class="hstat-lbl">Total Remain</div></div>
-    <button class="hbtn" onclick="resetAllChanges()" style="border-color:var(--warn);color:var(--warn);">↩ Reset All</button>
+    <button class="hbtn" onclick="deleteAllRecords()" style="border-color:var(--danger);color:var(--danger);">🗑 Delete All</button>
+    <button class="hbtn" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙 Dark</button>
     <button class="hbtn" onclick="exportCSV()">⬇ Export CSV</button>
+    <div id="db-status" style="display:flex;align-items:center;gap:5px;font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);">
+      <div id="db-dot" style="width:7px;height:7px;border-radius:50%;background:var(--muted);"></div>
+      <span id="db-label" style="color:var(--muted);">Connecting...</span>
+    </div>
   </div>
 </div>
 
@@ -263,6 +291,10 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
     <div>
       <div class="sublbl">Location</div>
       <input type="text" class="fi" id="s-loc" placeholder="A1, B2, P3..." autocomplete="off" />
+    </div>
+    <div>
+      <div class="sublbl">Sheet Location</div>
+      <input type="text" class="fi" id="s-sheet-loc" placeholder="e.g. Sheet A, Row 3..." autocomplete="off" />
     </div>
     <div class="agrid">
       <button class="abtn a-scan" onclick="handleAction('scan')">▶ Record Scan</button>
@@ -302,6 +334,7 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
         <button class="bbar-btn bbnote" onclick="lookupTableAction('note')">📝 Note</button>
         <button class="bbar-btn" style="border-color:var(--muted);color:var(--muted);" onclick="lookupTableAction('clearnote')">🗑 Clear Note</button>
         <button class="bbar-btn" style="border-color:var(--ordered);color:var(--ordered);" onclick="lookupTableAction('changeloc')">📍 Change Location</button>
+        <button class="bbar-btn" style="border-color:#a78bfa;color:#a78bfa;" onclick="lookupTableAction('changesheetloc')">📋 Sheet Location</button>
         <button class="bbar-btn bbc"    onclick="clearLookupSel()">✕ Clear</button>
       </div>
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:auto;max-height:260px;">
@@ -314,7 +347,9 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
               <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;">Location</th>
               <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;">Status</th>
               <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;">Remaining</th>
+              <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;">Item Status</th>
               <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;">Note</th>
+              <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;">Sheet Location</th>
             </tr>
           </thead>
           <tbody id="bulk-lookup-body"></tbody>
@@ -333,6 +368,10 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
     <div>
       <div class="flbl" style="margin-bottom:7px">Optional: location for all</div>
       <input type="text" class="fi" id="b-loc" placeholder="A1, B2, P3..." />
+    </div>
+    <div>
+      <div class="flbl" style="margin-bottom:7px">Optional: sheet location for all</div>
+      <input type="text" class="fi" id="b-sheet-loc" placeholder="e.g. Sheet A, Row 3..." />
     </div>
     <div class="bres-box" id="bulk-result">
       <div class="bres-hdr"><span id="bres-title">Results</span><button class="bres-copy" onclick="copyBulkResult()">⎘ Copy All</button></div>
@@ -365,6 +404,7 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
         <button class="bbar-btn bbnote" onclick="boxLocSelNote()">📝 Note</button>
         <button class="bbar-btn" style="border-color:var(--muted);color:var(--muted);" onclick="boxLocSelClearNote()">🗑 Clear Note</button>
         <button class="bbar-btn" style="border-color:var(--ordered);color:var(--ordered);" onclick="boxLocSelChangeLocation()">📍 Change Location</button>
+        <button class="bbar-btn" style="border-color:#a78bfa;color:#a78bfa;" onclick="boxLocSelSheetLoc()">📋 Sheet Location</button>
         <button class="bbar-btn bbc"    onclick="boxLocClearSel()">✕ Clear</button>
       </div>
 
@@ -384,8 +424,11 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
               <th style="padding:7px 10px;width:32px;border-bottom:1px solid var(--border);"><input type="checkbox" class="cb" id="boxloc-sel-all" onchange="toggleBoxLocSelAll(this)"/></th>
               <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">UPC</th>
               <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">LPN</th>
+              <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">Location</th>
               <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">Status</th>
+              <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">Item Status</th>
               <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">Note</th>
+              <th style="padding:7px 10px;text-align:left;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">Sheet Loc</th>
             </tr>
           </thead>
           <tbody id="bl-result-body"></tbody>
@@ -437,7 +480,7 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
 <!-- RIGHT -->
 <div class="right">
   <div class="toolbar">
-    <div class="swrap"><span class="sico">🔍</span><input type="text" class="si" id="search-input" placeholder="UPC, LPN, location..." oninput="renderTable()" /></div>
+    <div class="swrap"><span class="sico">🔍</span><input type="text" class="si" id="search-input" placeholder="UPC, LPN, location..." oninput="dbSearch()" /></div>
     <button class="fbtn active" id="f-all"    onclick="setFilter('all')">All</button>
     <button class="fbtn"        id="f-remain" onclick="setFilter('remain')">Has Remain</button>
     <button class="fbtn"        id="f-neg"    onclick="setFilter('neg')"   style="border-color:var(--danger);color:var(--danger)">Negative ⚠</button>
@@ -448,6 +491,13 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
     <button class="fbtn"        id="f-avail"   onclick="setFilter('avail')"   style="border-color:var(--accent);color:var(--accent)">Available</button>
     <span class="cnt" id="row-count">0 rows</span>
   </div>
+  <!-- Pagination -->
+  <div id="db-pagination" style="display:flex;align-items:center;gap:8px;padding:6px 16px;background:var(--surface);border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);">
+    <button onclick="dbGoPage(dbCurrentPage-1)" style="background:transparent;border:1px solid var(--border);color:var(--text);padding:3px 10px;border-radius:5px;cursor:pointer;font-size:12px;">◀</button>
+    <span id="db-page-info">Page 1</span>
+    <button onclick="dbGoPage(dbCurrentPage+1)" style="background:transparent;border:1px solid var(--border);color:var(--text);padding:3px 10px;border-radius:5px;cursor:pointer;font-size:12px;">▶</button>
+    <span style="margin-left:8px;" id="db-total-info"></span>
+  </div>
   <div class="bbar" id="bbar">
     <span class="bbar-lbl" id="bbar-lbl">0 selected</span>
     <button class="bbar-btn bbo"    onclick="tableAction('order')">📦 Order / Undo</button>
@@ -457,6 +507,7 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
     <button class="bbar-btn bbnote" onclick="tableAction('note')">📝 Note</button>
     <button class="bbar-btn" style="border-color:var(--muted);color:var(--muted);" onclick="tableAction('clearnote')">🗑 Clear Note</button>
     <button class="bbar-btn" style="border-color:var(--ordered);color:var(--ordered);" onclick="tableAction('changeloc')">📍 Change Location</button>
+    <button class="bbar-btn" style="border-color:#a78bfa;color:#a78bfa;" onclick="tableAction('changesheetloc')">📋 Sheet Location</button>
     <button class="bbar-btn" style="border-color:var(--danger);color:var(--danger);" onclick="tableAction('delete')">🗑 Delete</button>
     <button class="bbar-btn bbc"    onclick="clearSel()">✕ Clear</button>
   </div>
@@ -473,7 +524,9 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
           <th onclick="sortBy('unavail')">Not Avail ↕<span class="col-copy" onclick="copyCol(event,'unavail')">⎘</span></th>
           <th onclick="sortBy('remain')">Remain ↕<span class="col-copy" onclick="copyCol(event,'remain')">⎘</span></th>
           <th onclick="sortBy('status')">Status ↕</th>
+          <th onclick="sortBy('item_status')">Item Status ↕</th>
           <th>Note</th>
+          <th onclick="sortBy('sheet_loc')">Sheet Location ↕<span class="col-copy" onclick="copyCol(event,'sheet_loc')">⎘</span></th>
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
@@ -513,6 +566,43 @@ th .col-copy:hover{opacity:1;color:var(--accent);}
     <div class="modal-actions">
       <button class="mbtn mbtn-cancel" onclick="closeBulkNoteModal()">Cancel</button>
       <button class="mbtn mbtn-save"   onclick="saveBulkNote()">Apply to All Selected</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sheet Location Modal -->
+<div class="modal-overlay" id="sheet-loc-modal">
+  <div class="modal">
+    <div><div class="modal-title">📋 Set Sheet Location</div><div class="modal-sub" id="sheet-loc-sub">Applying to selected items</div></div>
+    <input type="text" class="fi" id="sheet-loc-input" placeholder="e.g. Sheet A, Row 3..." onkeydown="if(event.key==='Enter')saveSheetLocation();" />
+    <div class="modal-actions">
+      <button class="mbtn mbtn-cancel" onclick="closeSheetLocModal()">Cancel</button>
+      <button class="mbtn mbtn-save"   onclick="saveSheetLocation()">Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- Background Upload Progress -->
+<div id="bg-upload" style="display:none;position:fixed;bottom:20px;right:20px;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;min-width:260px;box-shadow:0 4px 20px rgba(0,0,0,.4);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <span style="font-size:12px;font-weight:600;color:var(--text);" id="bg-upload-title">Uploading...</span>
+    <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--accent);" id="bg-upload-pct">0%</span>
+  </div>
+  <div style="background:var(--surface2);border-radius:99px;height:6px;overflow:hidden;margin-bottom:6px;">
+    <div id="bg-upload-bar" style="height:100%;width:0%;background:var(--accent);border-radius:99px;transition:width .3s ease;"></div>
+  </div>
+  <div style="font-size:10px;color:var(--muted);" id="bg-upload-sub">Starting...</div>
+</div>
+
+<!-- Item Status Modal -->
+<div class="modal-overlay" id="item-status-modal">
+  <div class="modal">
+    <div><div class="modal-title">📋 Item Status</div><div class="modal-sub">Select a preset or type custom</div></div>
+    <div id="item-status-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+    <input type="text" class="fi" id="item-status-input" placeholder="e.g. Damaged, Can't Find..." onkeydown="if(event.key==='Enter')saveItemStatus();" />
+    <div class="modal-actions">
+      <button class="mbtn mbtn-cancel" onclick="closeItemStatusModal()">Cancel</button>
+      <button class="mbtn mbtn-save" onclick="saveItemStatus()">Save</button>
     </div>
   </div>
 </div>
@@ -611,54 +701,76 @@ let lookupSelectedKeys = new Set();
 let lookupLastClickIdx = -1;
 let lookupRowKeys = []; // ordered list of row keys shown in lookup table
 
-function bulkLookupLive() {
+async function bulkLookupLive() {
   const raw = document.getElementById('bulk-input').value;
   const entries = raw.split('\n')
     .map(l=>l.trim()).filter(Boolean)
-    .map(l=>{ const p=l.split(/\s+/); return {id:p[0],extra:p[1]||''}; })
+    .map(l=>{ const p=l.split(/\s+/); return {id:p[0], extra:p[1]||''}; })
     .filter(e=>e.id);
 
   const wrap  = document.getElementById('bulk-lookup-wrap');
   const body  = document.getElementById('bulk-lookup-body');
   const title = document.getElementById('bulk-lookup-title');
 
-  if (!entries.length) { wrap.style.display='none'; lookupRowKeys=[]; lookupSelectedKeys.clear(); updateLookupBBar(); return; }
+  if (!entries.length) {
+    wrap.style.display='none';
+    lookupRowKeys=[]; lookupSelectedKeys.clear(); updateLookupBBar();
+    return;
+  }
+
   wrap.style.display='block';
+  body.innerHTML = `<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--muted);font-size:12px;">🔍 Searching...</td></tr>`;
+  title.textContent = `${entries.length} line${entries.length!==1?'s':''}`;
 
-  const uniqueCount = new Set(entries.map(e=>e.id)).size;
-  title.textContent = `${entries.length} line${entries.length!==1?'s':''} · ${uniqueCount} unique`;
+  // Get unique IDs to search
+  const uniqueIds = [...new Set(entries.map(e=>e.id))];
 
-  const usedKeys = new Set();
-  const th = s => `style="padding:7px 10px;font-family:'Space Mono',monospace;font-size:11px;`;
+  // Query PocketBase in batches of 50 UPCs at a time
+  const allResults = {};
+  const BATCH = 50;
+  for (let i = 0; i < uniqueIds.length; i += BATCH) {
+    const batch = uniqueIds.slice(i, i+BATCH);
+    const field = bulkMode === 'lpn' ? 'lpn' : 'upc';
+    const filter = batch.map(id => `${field}="${id.replace(/"/g,'')}"`).join('||');
+    try {
+      let page = 1, totalPages = 1;
+      while (page <= totalPages) {
+        const d = await pbReq(`/api/collections/inventory/records?filter=${encodeURIComponent(filter)}&perPage=500&page=${page}`);
+        totalPages = d.totalPages || 1;
+        d.items.forEach(item => {
+          const key = bulkMode === 'lpn' ? item.lpn : item.upc;
+          if (!allResults[key]) allResults[key] = [];
+          allResults[key].push({
+            _pbId: item.id,
+            _rowKey: item.id,
+            upc: item.upc||'', lpn: item.lpn||'',
+            loc: item.loc||'', qty: item.qty||1,
+            order: item.order_count||0, unavail: item.unavail||0,
+            note: item.note||'', sheet_loc: item.sheet_loc||'',
+            item_status: item.item_status||''
+          });
+        });
+        page++;
+      }
+    } catch(e) { /* continue */ }
+  }
 
   lookupRowKeys = [];
-  const rowsHtml = entries.map(({id, extra}, idx) => {
-    // Find matches based on mode
-    let allMatches;
-    if (bulkMode === 'lpn') {
-      allMatches = Object.entries(rows)
-        .filter(([k,r]) => r.lpn && r.lpn.toLowerCase() === id.toLowerCase())
-        .map(([k,r]) => ({...r, _rowKey:k}));
-    } else {
-      allMatches = Object.entries(rows)
-        .filter(([k,r]) => r.upc === id)
-        .map(([k,r]) => ({...r, _rowKey:k}));
-    }
+  const usedKeys = new Set();
+  const tdStyle = (color='var(--text)') => `padding:7px 10px;font-family:'Space Mono',monospace;font-size:11px;color:${color};`;
 
-    const available = allMatches.filter(r => getStatus(r).cls==='s-available' && !usedKeys.has(r._rowKey));
+  const rowsHtml = entries.map(({id}, idx) => {
+    const allMatches = allResults[id] || [];
+    const available  = allMatches.filter(r => r.order===0 && r.unavail===0 && !usedKeys.has(r._rowKey));
     const upc = bulkMode==='lpn' ? (allMatches[0]?.upc||id) : id;
-    const lpn = bulkMode==='lpn' ? id : (allMatches[0]?.lpn||'—');
-    const rem = allMatches.length ? globalRemainForUPC(allMatches[0].upc) : 0;
-    const rc  = rem>0?'rpos':rem<0?'rneg':'rzero';
-
-    const tdStyle = (color='var(--text)') => `padding:7px 10px;font-family:'Space Mono',monospace;font-size:11px;color:${color};`;
+    const rem = available.length;
 
     if (!allMatches.length) {
       lookupRowKeys.push(null);
       return `<tr data-idx="${idx}" style="border-top:1px solid rgba(42,42,56,.6);">
         <td style="padding:7px 10px;"><input type="checkbox" class="cb" disabled/></td>
         <td style="${tdStyle()}">${upc}</td>
-        <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+        <td></td><td></td><td></td><td></td><td></td><td></td>
       </tr>`;
     }
 
@@ -667,7 +779,7 @@ function bulkLookupLive() {
       return `<tr data-idx="${idx}" style="border-top:1px solid rgba(42,42,56,.6);">
         <td style="padding:7px 10px;"><input type="checkbox" class="cb" disabled/></td>
         <td style="${tdStyle()}">${upc}</td>
-        <td></td><td></td><td></td><td></td><td></td><td></td>
+        <td></td><td></td><td></td><td></td>
         <td style="padding:7px 10px;font-size:11px;color:var(--danger);font-weight:700;">OOS</td>
       </tr>`;
     }
@@ -676,9 +788,12 @@ function bulkLookupLive() {
     const rk     = first._rowKey;
     usedKeys.add(rk);
     lookupRowKeys.push(rk);
+    // Sync to local rows
+    if (!rows[rk]) rows[rk] = {...first};
     const sel    = lookupSelectedKeys.has(rk);
     const st     = getStatus(first);
     const safeRk = rk.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const rc     = rem>0?'rpos':'rzero';
 
     return `<tr data-idx="${idx}" data-rkey="${rk}" style="border-top:1px solid rgba(42,42,56,.6);${sel?'background:rgba(0,229,160,.04);':''}">
       <td style="padding:7px 10px;"><input type="checkbox" class="cb" ${sel?'checked':''} onclick="handleLookupClick(event,${idx},'${safeRk}')"/></td>
@@ -687,11 +802,14 @@ function bulkLookupLive() {
       <td style="${tdStyle('var(--accent)')}">${fmtLoc(first.loc)}</td>
       <td style="padding:7px 10px;"><span class="status-badge ${st.cls}">${st.icon} ${st.label}</span></td>
       <td style="padding:7px 10px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;" class="${rc}">${rem}</td>
+      <td style="padding:7px 10px;font-size:10px;color:var(--warn);">${first.item_status||''}</td>
       <td style="padding:7px 10px;font-size:10px;color:var(--warn);">${first.note||''}</td>
+      <td style="padding:7px 10px;font-size:10px;color:var(--muted);">${first.sheet_loc||''}</td>
     </tr>`;
   });
 
   body.innerHTML = rowsHtml.join('');
+  title.textContent = `${entries.length} line${entries.length!==1?'s':''} · ${new Set(entries.map(e=>e.id)).size} unique`;
   document.getElementById('bl-sel-all').checked = false;
   updateLookupBBar();
 }
@@ -759,6 +877,7 @@ function updateLookupBBar() {
 
 function lookupTableAction(type) {
   if (!lookupSelectedKeys.size) return;
+  if (['order','unavail','undo'].includes(type)) pushUndo('Bulk lookup: '+type);
   let done=0;
   lookupSelectedKeys.forEach(key => {
     const r = rows[key]; if (!r) return;
@@ -768,11 +887,11 @@ function lookupTableAction(type) {
     if (type==='copy') return;
   });
   if (type==='copy') {
-    const lines=['UPC\tLPN\tLocation\tStatus\tRemaining'];
+    const lines=['UPC\tLPN\tLocation\tStatus\tRemaining\tItem Status\tNote\tSheet Location'];
     lookupSelectedKeys.forEach(key=>{
       const r=rows[key]; if(!r) return;
       const st=getStatus(r);
-      lines.push([r.upc,r.lpn||'',r.loc||'',st.label,globalRemainForUPC(r.upc)].join('\t'));
+      lines.push([r.upc,r.lpn||'',r.loc||'',st.label,globalRemainForUPC(r.upc),r.item_status||'',r.note||'',r.sheet_loc||''].join('\t'));
     });
     copyText(lines.join('\n'),`${lookupSelectedKeys.size} rows copied`); return;
   }
@@ -788,7 +907,7 @@ function lookupTableAction(type) {
   }
   if (type==='clearnote') {
     let done=0;
-    lookupSelectedKeys.forEach(key=>{ if(rows[key]){rows[key].note='';done++;} });
+    lookupSelectedKeys.forEach(key=>{ if(rows[key]){rows[key].note='';pbSave(key);done++;} });
     showToast(`🗑 Cleared notes on ${done} item${done!==1?'s':''}`, '#00e5a0');
     renderTable(); updateStats(); bulkLookupLive(); return;
   }
@@ -796,20 +915,36 @@ function lookupTableAction(type) {
     openChangeLocModal([...lookupSelectedKeys], ()=>{ renderTable(); updateStats(); bulkLookupLive(); });
     return;
   }
-  const labels={order:'Toggled order',unavail:'Toggled N/A',undo:'Reset to Available'};
-  showToast(`✓ ${labels[type]} on ${done} items`,'#00e5a0');
-  renderTable(); updateStats(); bulkLookupLive();
+  if (type==='changesheetloc') {
+    openSheetLocModal([...lookupSelectedKeys], (newVal)=>{
+      lookupSelectedKeys.forEach(k=>{ if(rows[k]){ rows[k].sheet_loc=newVal; pbSave(k); } });
+    });
+    return;
+  }
+  if (done > 0) {
+    _lastSaveTime = Date.now();
+    // Batch save changed rows to PocketBase
+    (async () => {
+      const keys = [...lookupSelectedKeys];
+      for (let i=0; i<keys.length; i+=10) {
+        await Promise.all(keys.slice(i,i+10).map(k=>pbSave(k)));
+      }
+    })();
+    const labels={order:'Toggled order',unavail:'Toggled N/A',undo:'Reset to Available'};
+    showToast(`✓ ${labels[type]} on ${done} items`,'#00e5a0');
+    renderTable(); updateStats(); bulkLookupLive();
+  }
 }
 
 function copyBulkLookup() {
-  const lines = ['UPC\tLPN/FNSKU\tLocation\tStatus\tRemaining\tNote'];
+  // Row tds: 0=cb, 1=upc, 2=lpn, 3=loc, 4=status, 5=remain, 6=item_status, 7=note, 8=sheet_loc
+  const lines = ['UPC\tLPN/FNSKU\tLocation\tStatus\tRemaining\tItem Status\tNote\tSheet Location'];
   document.querySelectorAll('#bulk-lookup-body tr').forEach(tr => {
     const tds = [...tr.querySelectorAll('td')];
     if (!tds.length) return;
     const upc = (tds[1]?.textContent||'').trim();
     if (!upc) return;
-    if (tds.length >= 7) {
-      // Full row: cb, upc, lpn, loc, status, remain, note
+    if (tds.length >= 9) {
       lines.push([
         upc,
         (tds[2]?.textContent||'').trim(),
@@ -817,10 +952,11 @@ function copyBulkLookup() {
         (tds[4]?.textContent||'').trim(),
         (tds[5]?.textContent||'').trim(),
         (tds[6]?.textContent||'').trim(),
+        (tds[7]?.textContent||'').trim(),
+        (tds[8]?.textContent||'').trim(),
       ].join('\t'));
     } else {
-      const note = (tds[tds.length-1]?.textContent||'').trim();
-      lines.push([upc, '', '', '', '', note].join('\t'));
+      lines.push([upc, '', '', '', '', '', '', ''].join('\t'));
     }
   });
   copyText(lines.join('\n'), 'Lookup table copied');
@@ -831,8 +967,8 @@ let boxLocSelected = new Set();
 let boxLocLastIdx  = -1;
 let boxLocKeys     = [];
 
-function boxLocSearch() {
-  const raw   = document.getElementById('bl-search').value.trim().toLowerCase();
+async function boxLocSearch() {
+  const raw   = document.getElementById('bl-search').value.trim();
   const wrap  = document.getElementById('bl-result-wrap');
   const empty = document.getElementById('bl-empty');
   const body  = document.getElementById('bl-result-body');
@@ -840,21 +976,45 @@ function boxLocSearch() {
 
   if (!raw) { wrap.style.display='none'; empty.style.display='none'; return; }
 
-  // Split query into words — every word must match at least one location field
-  const words = raw.split(/\s+/).filter(Boolean);
+  body.innerHTML = `<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--muted);font-size:12px;">🔍 Searching...</td></tr>`;
+  wrap.style.display='flex'; empty.style.display='none';
 
-  const matched = Object.entries(rows).filter(([k,r]) => {
-    // Only show Available items
-    if (getStatus(r).cls !== 's-available') return false;
-    return words.every(w => (r.loc||'').toLowerCase().includes(w));
-  });
+  // Exact match for location
+  const searchVal = raw.trim().replace(/"/g, '');
+  const filter = encodeURIComponent(`loc="${searchVal}"`);
+
+  let matched = [];
+  try {
+    let page = 1, totalPages = 1;
+    while (page <= totalPages) {
+      const d = await pbReq(`/api/collections/inventory/records?filter=${filter}&perPage=500&page=${page}&sort=loc`);
+      totalPages = d.totalPages || 1;
+      d.items.forEach(item => {
+        const key = item.id;
+        // Sync to local rows
+        rows[key] = {
+          _pbId: item.id, upc: item.upc||'', lpn: item.lpn||'',
+          loc: item.loc||'', qty: item.qty||1,
+          order: item.order_count||0, unavail: item.unavail||0, note: item.note||'', sheet_loc: item.sheet_loc||'',
+          item_status: item.item_status||''
+        };
+        matched.push([key, rows[key]]);
+      });
+      page++;
+    }
+  } catch(e) {
+    // Fall back to local search
+    matched = Object.entries(rows).filter(([k,r]) => {
+      return (r.loc||'').toLowerCase() === searchVal.toLowerCase();
+    });
+  }
 
   if (!matched.length) {
     wrap.style.display='none'; empty.style.display='block'; return;
   }
 
   wrap.style.display='flex'; empty.style.display='none';
-  title.textContent = `${matched.length} available item${matched.length!==1?'s':''} found`;
+  title.textContent = `${matched.length} item${matched.length!==1?'s':''} found`;
   boxLocKeys = matched.map(([k])=>k);
   [...boxLocSelected].forEach(k=>{ if(!boxLocKeys.includes(k)) boxLocSelected.delete(k); });
 
@@ -869,8 +1029,11 @@ function boxLocSearch() {
       <td style="padding:6px 10px;width:32px;"><input type="checkbox" class="cb" ${sel?'checked':''} onclick="handleBoxLocClick(event,${idx},'${sk}')"/></td>
       <td style="padding:6px 10px;font-family:'Space Mono',monospace;font-size:11px;color:var(--text);">${r.upc}</td>
       <td style="padding:6px 10px;font-size:10px;color:var(--ordered);">${r.lpn||'—'}</td>
+      <td style="padding:6px 10px;font-size:10px;color:var(--accent);">${r.loc||'—'}</td>
       <td style="padding:6px 10px;"><span class="status-badge ${st.cls}">${st.icon} ${st.label}</span></td>
+      <td style="padding:6px 10px;font-size:10px;color:var(--warn);">${r.item_status||''}</td>
       <td style="padding:6px 10px;">${noteHtml}</td>
+      <td style="padding:6px 10px;font-size:10px;color:var(--muted);">${r.sheet_loc||''}</td>
     </tr>`;
   }).join('');
 
@@ -926,15 +1089,20 @@ function updateBoxLocBBar() {
 
 function boxLocSelAction(type) {
   const keys = boxLocSelected.size > 0 ? [...boxLocSelected] : boxLocKeys;
+  pushUndo('Box loc: '+type);
   keys.forEach(k => {
     const r = rows[k]; if (!r) return;
     if (type==='unavail') { r.order=0; r.unavail=1; }
     if (type==='order')   { r.unavail=0; r.order=1; }
     if (type==='undo')    { r.order=0; r.unavail=0; }
+    pbSave(k);
   });
+  _lastSaveTime = Date.now();
   const labels = {unavail:'Marked N/A',order:'Marked Ordered',undo:'Reset to Available'};
   showToast(`✓ ${labels[type]}: ${keys.length} items`, '#00e5a0');
-  renderTable(); updateStats(); boxLocSearch();
+  renderTable(); updateStats();
+  // Re-query from PocketBase so statuses update in box location table
+  setTimeout(()=>boxLocSearch(), 500);
 }
 
 function boxLocAction(type) { boxLocSelAction(type); }
@@ -966,7 +1134,7 @@ function boxLocSelNote() {
 function boxLocSelClearNote() {
   const keys = boxLocSelected.size>0 ? [...boxLocSelected] : [...boxLocKeys];
   if (!keys.length) return;
-  keys.forEach(k=>{ if(rows[k]) rows[k].note=''; });
+  keys.forEach(k=>{ if(rows[k]){ rows[k].note=''; pbSave(k); } });
   showToast(`🗑 Cleared notes on ${keys.length} items`,'#00e5a0');
   renderTable(); boxLocSearch();
 }
@@ -977,6 +1145,13 @@ function boxLocSelChangeLocation() {
   openChangeLocModal(keys, ()=>{ renderTable(); updateStats(); boxLocSearch(); });
 }
 function boxLocChangeLocationAll() { boxLocSelChangeLocation(); }
+
+function boxLocSelSheetLoc() {
+  const keys = boxLocSelected.size>0 ? [...boxLocSelected] : [...boxLocKeys];
+  openSheetLocModal(keys, (newVal)=>{
+    keys.forEach(k=>{ if(rows[k]){ rows[k].sheet_loc=newVal; pbSave(k); } });
+  });
+}
 
 function boxLocClearSel() {
   boxLocSelected.clear(); boxLocLastIdx=-1;
@@ -1004,6 +1179,61 @@ function openChangeLocModal(keys, callback) {
 document.getElementById('change-loc-modal').addEventListener('click',e=>{
   if(e.target===document.getElementById('change-loc-modal')) closeChangeLocModal();
 });
+// ── Sheet Location Modal ──────────────────────────────────
+let _sheetLocKeys = [];
+let _sheetLocCallback = null;
+
+function openSheetLocModal(keys, callback) {
+  if (!keys || !keys.length) { showToast('⚠ Select items first','#ffb800'); return; }
+  _sheetLocKeys = keys;
+  _sheetLocCallback = callback;
+  document.getElementById('sheet-loc-sub').textContent = `Applying to ${keys.length} item${keys.length!==1?"s":''}`;
+  document.getElementById('sheet-loc-input').value = '';
+  document.getElementById('sheet-loc-modal').classList.add('show');
+  setTimeout(()=>document.getElementById('sheet-loc-input').focus(),100);
+}
+
+function closeSheetLocModal() {
+  document.getElementById('sheet-loc-modal').classList.remove('show');
+  _sheetLocKeys = []; _sheetLocCallback = null;
+}
+
+async function saveSheetLocation() {
+  const val = document.getElementById('sheet-loc-input').value.trim();
+  pushUndo('Sheet location');
+  const keysToSave = [..._sheetLocKeys];
+  closeSheetLocModal();
+
+  // Save to PocketBase in batches of 10
+  let saved = 0;
+  for (let i = 0; i < keysToSave.length; i += 10) {
+    const batch = keysToSave.slice(i, i+10);
+    await Promise.all(batch.map(async k => {
+      const pbId = rows[k]?._pbId || k;
+      try {
+        const res = await fetch(PB_URL+'/api/collections/inventory/records/'+pbId, {
+          method: 'PATCH',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({sheet_loc: val})
+        });
+        if (res.ok) {
+          // Update local row AFTER confirmed save
+          if (rows[k]) rows[k].sheet_loc = val;
+          saved++;
+        }
+      } catch(e) {}
+    }));
+  }
+  showToast(`📋 Sheet Location saved on ${saved} item${saved!==1?'s':''}`, '#a78bfa');
+  // Now render with the updated local data — no DB reload needed
+  _lastSaveTime = Date.now();
+  renderTable();
+}
+
+document.getElementById('sheet-loc-modal').addEventListener('click', e=>{
+  if(e.target===document.getElementById('sheet-loc-modal')) closeSheetLocModal();
+});
+
 function closeChangeLocModal() {
   document.getElementById('change-loc-modal').classList.remove('show');
   changeLocKeys=[]; changeLocCallback=null;
@@ -1011,9 +1241,10 @@ function closeChangeLocModal() {
 function saveChangeLocation() {
   const newLoc = document.getElementById('change-loc-input').value.trim();
   if (!newLoc) { showToast('⚠ Enter a location','#ffb800'); return; }
+  pushUndo('Change location to '+newLoc);
   let moved = 0;
   changeLocKeys.forEach(k=>{
-    if(rows[k]) { rows[k].loc=newLoc; moved++; }
+    if(rows[k]) { rows[k].loc=newLoc; pbSave(k); moved++; }
   });
   showToast(`📍 Moved ${moved} item${moved!==1?'s':''} to ${newLoc}`,'#4da6ff');
   closeChangeLocModal();
@@ -1036,7 +1267,7 @@ function clearBoxLoc() {
 function copyBoxLoc() {
   const keys = boxLocSelected.size > 0 ? [...boxLocSelected] : boxLocKeys;
   const lines = ['UPC\tLPN\tLocation\tStatus'];
-  keys.forEach(k=>{ const r=rows[k]; if(!r) return; lines.push([r.upc,r.lpn||'',fmtLoc(r.loc),getStatus(r).label].join('\t')); });
+  keys.forEach(k=>{ const r=rows[k]; if(!r) return; lines.push([r.upc,r.lpn||'',fmtLoc(r.loc),getStatus(r).label,r.sheet_loc||''].join('\t')); });
   copyText(lines.join('\n'), `${keys.length} items copied`);
 }
 function handleAction(type) {
@@ -1045,6 +1276,7 @@ function handleAction(type) {
   const lpn = document.getElementById('s-lpn').value.trim();
   const qty = Math.max(1, parseInt(document.getElementById('s-qty').value)||1);
   const loc = document.getElementById('s-loc').value.trim();
+  const sheet_loc = document.getElementById('s-sheet-loc').value.trim();
   const banner = document.getElementById('cap-banner');
   const msg    = document.getElementById('cap-msg');
 
@@ -1066,57 +1298,58 @@ function handleAction(type) {
     banner.classList.remove('show');
   }
 
-  applyAction(upc, lpn, type, loc, qty);
+  applyAction(upc, lpn, type, loc, qty, sheet_loc);
   document.getElementById('s-upc').value='';
   document.getElementById('s-qty').value='1';
+  document.getElementById('s-sheet-loc').value='';
   document.getElementById('s-upc').focus();
   renderTable(); updateStats(); scheduleSave();
 }
 
-function applyAction(upc, lpn, type, loc={}, qty=1) {
+function applyAction(upc, lpn, type, loc={}, qty=1, sheet_loc='') {
   if (type === 'scan') {
-    // Each scan = its own row with qty:1 (or qty as specified)
-    // If qty > 1, create that many separate rows
+    pushUndo('Scan: '+upc);
+    const newKeys = [];
     for (let i = 0; i < qty; i++) {
       const key = makeUniqueKey(upc,loc);
-      rows[key] = { upc, lpn:lpn||'', loc:loc||'', qty:1, order:0, unavail:0, note:'' };
+      rows[key] = { upc, lpn:lpn||'', loc:loc||'', qty:1, order:0, unavail:0, note:'', sheet_loc:sheet_loc||'', item_status:'' };
+      newKeys.push(key);
     }
     showToast(`✓ Scanned ${upc}${qty>1?' ×'+qty:''}`, '#00e5a0');
     logActivity(upc, lpn, type, fmtLoc(loc), qty);
+    newKeys.forEach(k=>pbSave(k));
     return;
   }
 
-  // For order/unavail — find existing row to target
-  // If no location given, target first matching row
   const hasLoc = !!loc;
-  const baseKey = makeKey(upc,loc);
   let targetKey = null;
   if (hasLoc) {
-    // Find first available row at this location
     targetKey = Object.keys(rows).find(k => {
       const r = rows[k];
       return r.upc===upc && fmtLoc(r.loc)===fmtLoc(loc) && r.order===0 && r.unavail===0;
-    }) || Object.keys(rows).find(k => rows[k].upc===upc && fmtLoc(rows[k].bl,rows[k].bn,rows[k].pn)===fmtLoc(loc));
+    }) || Object.keys(rows).find(k => rows[k].upc===upc && fmtLoc(rows[k].loc)===fmtLoc(loc));
   } else {
     targetKey = Object.keys(rows).find(k => rows[k].upc===upc);
   }
   if (!targetKey) {
-    // Create new row if not found
     targetKey = makeUniqueKey(upc,loc);
     rows[targetKey] = { upc, lpn:lpn||'', loc:loc||'', qty:0, order:0, unavail:0, note:'' };
   }
   const r = rows[targetKey];
   if (lpn) r.lpn = lpn;
 
+  pushUndo(type==='order'?'Order: '+upc:'N/A: '+upc);
   if (type==='order')   { r.order+=qty;   showToast(`📦 Ordered ${upc}${qty>1?' ×'+qty:''}`, '#4da6ff'); }
   if (type==='unavail') { r.unavail+=qty; showToast(`✕ N/A: ${upc}${qty>1?' ×'+qty:''}`, '#ff6b35'); }
   logActivity(upc, r.lpn, type, fmtLoc(r.loc), qty);
+  pbSave(targetKey);
 }
 
 // ── Bulk ───────────────────────────────────────────────────
 function bulkAction(type) {
   const raw = document.getElementById('bulk-input').value;
-  // Parse each line: "UPC" or "UPC LPN"
+  const bLoc = document.getElementById('b-loc')?.value.trim()||'';
+  const bSheetLoc = document.getElementById('b-sheet-loc')?.value.trim()||'';
   const entries = raw.split('\n')
     .map(l => l.trim())
     .filter(Boolean)
@@ -1127,6 +1360,7 @@ function bulkAction(type) {
     .filter(e => e.upc);
   if (!entries.length) { showToast('⚠ No IDs entered','#ffb800'); return; }
   const loc = document.getElementById('b-loc').value.trim();
+  const bSheetLoc2 = document.getElementById('b-sheet-loc').value.trim();
   const resBox=document.getElementById('bulk-result'), resRows=document.getElementById('bres-rows');
 
   if (type==='search') {
@@ -1195,62 +1429,80 @@ function copyBulkResult() {
 // ── Table actions ──────────────────────────────────────────
 function tableAction(type) {
   if (!selectedKeys.size) return;
-  let done=0, blocked=0;
+  const keys = [...selectedKeys];
+  let done = 0, blocked = 0;
 
   if (type==='order') {
-    selectedKeys.forEach(key => {
-      const r = rows[key]; if (!r) return;
-      if (r.order > 0) {
-        r.order = 0; done++;  // undo — set back to available
-      } else {
-        if (getRemain(r)<=0) { blocked++; return; }
-        r.order = 1; done++;  // mark ordered
-      }
+    pushUndo('Order toggle');
+    keys.forEach(key => {
+      const r=rows[key]; if(!r) return;
+      if (r.order>0) { r.order=0; done++; }
+      else { if(getRemain(r)<=0){blocked++;return;} r.order=1; done++; }
     });
-    const extra=blocked>0?` (${blocked} skipped — no remain)`:'';
-    showToast(`📦 Toggled order on ${done} rows${extra}`, blocked>0?'#ffb800':'#4da6ff');
+    keys.forEach(k=>pbSave(k));
+    showToast(`📦 Toggled order on ${done} rows${blocked>0?` (${blocked} skipped)`:''}`, blocked>0?'#ffb800':'#4da6ff');
 
   } else if (type==='unavail') {
-    selectedKeys.forEach(key=>{
-      const r=rows[key]; if(!r) return;
-      if (r.unavail > 0) { r.unavail=0; done++; }  // undo N/A
-      else               { r.unavail=1; done++; }   // mark N/A
-    });
+    pushUndo('N/A toggle');
+    keys.forEach(key=>{ const r=rows[key]; if(!r)return; r.unavail=r.unavail>0?0:1; done++; });
+    keys.forEach(k=>pbSave(k));
     showToast(`✕ Toggled N/A on ${done} rows`,'#ff6b35');
 
   } else if (type==='scan') {
-    selectedKeys.forEach(key=>{ if(rows[key]){rows[key].qty++;done++;} });
+    keys.forEach(key=>{ if(rows[key]){rows[key].qty++;done++;} });
+    keys.forEach(k=>pbSave(k));
     showToast(`✓ Added qty to ${done} rows`,'#00e5a0');
 
   } else if (type==='copy') {
-    const lines=['UPC\tLPN\tLocation\tQty\tOrdered\tN/A\tRemain'];
-    selectedKeys.forEach(key=>{
-      const r=rows[key]; if(!r) return;
-      lines.push([r.upc,r.lpn||'',fmtLoc(r.loc),r.qty,r.order,r.unavail,getRemain(r)].join('\t'));
-    });
-    copyText(lines.join('\n'), `${selectedKeys.size} rows copied`); return;
+    const lines=['UPC\tLPN\tLocation\tSheet Location\tQty\tOrdered\tN/A\tRemain'];
+    keys.forEach(key=>{ const r=rows[key]; if(!r)return; lines.push([r.upc,r.lpn||'',r.loc||'',r.sheet_loc||'',r.qty,r.order,r.unavail,getRemain(r)].join('\t')); });
+    copyText(lines.join('\n'), `${keys.length} rows copied`); return;
 
-  } else if (type==='changeloc') {
-    const keys = [...selectedKeys];
-    openChangeLocModal(keys, ()=>{ renderTable(); updateStats(); });
-    return;
-    let done=0;
-    selectedKeys.forEach(key=>{ if(rows[key]&&rows[key].note){rows[key].note='';done++;} });
+  } else if (type==='note') {
+    openBulkNoteModal(); return;
+
+  } else if (type==='clearnote') {
+    pushUndo('Clear notes');
+    keys.forEach(key=>{ if(rows[key]){rows[key].note='';done++;} });
+    keys.forEach(k=>pbSave(k));
     showToast(`🗑 Cleared notes on ${done} row${done!==1?'s':''}`, '#00e5a0');
 
+  } else if (type==='changeloc') {
+    openChangeLocModal(keys, ()=>{ renderTable(); updateStats(); }); return;
+
+  } else if (type==='changesheetloc') {
+    openSheetLocModal(keys, null); return;
+
   } else if (type==='delete') {
-    const count = selectedKeys.size;
-    if (!count) return;
-    // Confirm before deleting
-    const confirmed = confirm(`Delete ${count} selected row${count!==1?'s':''}? This cannot be undone.`);
-    if (!confirmed) return;
-    selectedKeys.forEach(key=>{ delete rows[key]; });
+    pushUndo('Delete rows');
+    const count = keys.length;
+    if (!confirm(`Delete ${count} selected row${count!==1?'s':''}? This cannot be undone.`)) return;
+    keys.forEach(key=>delete rows[key]);
     selectedKeys.clear(); lastClickedIndex=-1;
-    showToast(`🗑 Deleted ${count} row${count!==1?'s':''}`, '#ff4466');
+    renderTable(); updateStats();
+    showToast(`🗑 Deleting ${count} row${count!==1?'s':''}...`, '#ff4466');
+    (async()=>{
+      for (let i=0; i<keys.length; i+=10) {
+        await Promise.all(keys.slice(i,i+10).map(k=>
+          fetch(PB_URL+'/api/collections/inventory/records/'+k, {method:'DELETE'}).catch(()=>{})
+        ));
+      }
+      dbTotalItems=Math.max(0,dbTotalItems-count);
+      showToast(`🗑 Deleted ${count} row${count!==1?'s':''}`, '#ff4466');
+      updateStats();
+    })();
+    return;
+  }
 
-  } else if (type==='note') { openBulkNoteModal(); return; }
-
-  renderTable(); updateStats(); scheduleSave();
+  renderTable(); updateStats();
+  // Block sync for 5s so it doesn't overwrite our fresh local data
+  _lastSaveTime = Date.now();
+  // Batch save to PocketBase
+  (async () => {
+    for (let i=0; i<keys.length; i+=10) {
+      await Promise.all(keys.slice(i,i+10).map(k=>pbSave(k)));
+    }
+  })();
 }
 
 // ── Selection ──────────────────────────────────────────────
@@ -1293,9 +1545,54 @@ function openNoteModal(key) {
 }
 function pickChip(el,text){document.querySelectorAll('#modal-chips .chip').forEach(c=>c.classList.remove('active-chip'));el.classList.add('active-chip');document.getElementById('modal-note-text').value=text;}
 function closeNoteModal(){document.getElementById('note-modal').classList.remove('show');editingNoteKey=null;}
+// ── Item Status Modal ─────────────────────────────────────
+const ITEM_STATUS_PRESETS = ["Can't Find","Damaged","Used","Removed","Wrong Item","Freebie"];
+let _itemStatusKey = null;
+
+function openItemStatusModal(key) {
+  _itemStatusKey = key;
+  const r = rows[key];
+  const modal = document.getElementById('item-status-modal');
+  document.getElementById('item-status-input').value = r?.item_status||'';
+  buildItemStatusChips();
+  modal.classList.add('show');
+  setTimeout(()=>document.getElementById('item-status-input').focus(),100);
+}
+
+function buildItemStatusChips() {
+  const wrap = document.getElementById('item-status-chips');
+  wrap.innerHTML = ITEM_STATUS_PRESETS.map(p=>
+    `<button onclick="pickItemStatus(this)" data-val="${p.replace(/"/g,'&quot;')}" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:11px;">${p}</button>`
+  ).join('');
+}
+
+function pickItemStatus(btn) {
+  document.getElementById('item-status-input').value = btn.dataset.val;
+}
+
+function saveItemStatus() {
+  if (!_itemStatusKey || !rows[_itemStatusKey]) return;
+  pushUndo('Item status');
+  const val = document.getElementById('item-status-input').value.trim();
+  rows[_itemStatusKey].item_status = val;
+  _lastSaveTime = Date.now();
+  pbSave(_itemStatusKey);
+  document.getElementById('item-status-modal').classList.remove('show');
+  _itemStatusKey = null;
+  renderTable();
+  if (val) showToast('📋 Item Status saved', '#ffb800');
+}
+
+function closeItemStatusModal() {
+  document.getElementById('item-status-modal').classList.remove('show');
+  _itemStatusKey = null;
+}
+
 function saveNote(){
   if(!editingNoteKey)return;
+  pushUndo('Note: '+editingNoteKey);
   rows[editingNoteKey].note=document.getElementById('modal-note-text').value.trim();
+  pbSave(editingNoteKey);
   closeNoteModal();
   renderTable();
   if(document.getElementById('tab-boxloc').classList.contains('active')) boxLocSearch();
@@ -1312,24 +1609,48 @@ function openBulkNoteModal(){
 }
 function pickBulkChip(el,text){document.querySelectorAll('#bulk-modal-chips .chip').forEach(c=>c.classList.remove('active-chip'));el.classList.add('active-chip');document.getElementById('bulk-note-text').value=text;}
 
-function saveBulkNote(){
+async function saveBulkNote(){
   const note  = document.getElementById('bulk-note-text').value.trim();
+  pushUndo('Bulk note');
   const modal = document.getElementById('bulk-note-modal');
   const boxKeys    = modal._boxLocKeys;
   const lookupKeys = modal._lookupKeys;
+  let targetKeys = [];
+
   if (boxKeys && boxKeys.length) {
-    boxKeys.forEach(k=>{ if(rows[k]) rows[k].note=note; });
-    showToast(`✓ Note set on ${boxKeys.length} items`,'#00e5a0');
-    modal._boxLocKeys=null; closeBulkNoteModal(); renderTable(); boxLocSearch();
+    targetKeys = boxKeys;
+    modal._boxLocKeys = null;
   } else if (lookupKeys && lookupKeys.length) {
-    lookupKeys.forEach(k=>{ if(rows[k]) rows[k].note=note; });
-    showToast(`✓ Note set on ${lookupKeys.length} items`,'#00e5a0');
-    modal._lookupKeys=null; closeBulkNoteModal(); renderTable(); bulkLookupLive();
+    targetKeys = lookupKeys;
+    modal._lookupKeys = null;
   } else {
-    selectedKeys.forEach(k=>{ if(rows[k]) rows[k].note=note; });
-    showToast(`✓ Note set on ${selectedKeys.size} rows`,'#00e5a0');
-    closeBulkNoteModal(); renderTable();
+    targetKeys = [...selectedKeys];
   }
+
+  closeBulkNoteModal();
+
+  // Save to PocketBase in batches of 10
+  let saved = 0;
+  for (let i=0; i<targetKeys.length; i+=10) {
+    await Promise.all(targetKeys.slice(i,i+10).map(async k=>{
+      const pbId = rows[k]?._pbId || k;
+      try {
+        const res = await fetch(PB_URL+'/api/collections/inventory/records/'+pbId, {
+          method:'PATCH', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({note})
+        });
+        if (res.ok) {
+          if (rows[k]) rows[k].note = note;
+          saved++;
+        }
+      } catch(e) {}
+    }));
+  }
+  showToast(`✓ Note saved on ${saved} item${saved!==1?'s':''}`, '#00e5a0');
+  _lastSaveTime = Date.now();
+  renderTable();
+  if (boxKeys) boxLocSearch();
+  else if (lookupKeys) bulkLookupLive();
 }
 
 function closeBulkNoteModal(){
@@ -1343,32 +1664,11 @@ document.getElementById('bulk-note-modal').addEventListener('click',e=>{if(e.tar
 
 // ── Render ─────────────────────────────────────────────────
 function getVisible() {
-  const q=document.getElementById('search-input').value.toLowerCase();
-  // Pre-compute remain per UPC once (avoid O(n²))
-  const remainCache={};
-  Object.values(rows).forEach(r=>{
-    if(remainCache[r.upc]===undefined) remainCache[r.upc]=globalRemainForUPC(r.upc);
-  });
-  let data=Object.entries(rows).map(([key,r])=>({
-    ...r, _key:key, locKey:fmtLoc(r.loc), remain:remainCache[r.upc]??0
+  // DB already handles filtering, sorting, pagination
+  // Just map rows to display format
+  return Object.entries(rows).map(([key,r])=>({
+    ...r, _key:key, locKey:fmtLoc(r.loc), remain:r.order===0&&r.unavail===0?1:0
   }));
-  if(q) data=data.filter(r=>r.upc.toLowerCase().includes(q)||r.lpn.toLowerCase().includes(q)||r.locKey.toLowerCase().includes(q)||(r.note||'').toLowerCase().includes(q));
-  if(currentFilter==='remain')  data=data.filter(r=>getRemain(r)>0);
-  if(currentFilter==='neg')     data=data.filter(r=>getRemain(r)<0);
-  if(currentFilter==='nolpn')   data=data.filter(r=>!r.lpn);
-  if(currentFilter==='noted')   data=data.filter(r=>r.note);
-  if(currentFilter==='ordered') data=data.filter(r=>getStatus(r).cls==='s-ordered');
-  if(currentFilter==='unavail') data=data.filter(r=>getStatus(r).cls==='s-unavail');
-  if(currentFilter==='avail')   data=data.filter(r=>getStatus(r).cls==='s-available');
-  data.sort((a,b)=>{
-    let av, bv;
-    if(sortCol==='status'){ av=getStatus(a).label; bv=getStatus(b).label; }
-    else if(sortCol==='remain'){ av=getRemain(a); bv=getRemain(b); }
-    else { av=a[sortCol]??0; bv=b[sortCol]??0; }
-    if(typeof av==='string') return sortDir*av.localeCompare(bv);
-    return sortDir*(av-bv);
-  });
-  return data;
 }
 
 // ── Virtual rendering (handles 70k+ rows) ─────────────────
@@ -1395,11 +1695,12 @@ function renderTable() {
   const tbody = document.getElementById('tbody');
   const empty = document.getElementById('empty');
   const total = visibleData.length;
-  document.getElementById('row-count').textContent = `${total} row${total!==1?'s':''}`;
+  document.getElementById('row-count').textContent = `${dbTotalItems.toLocaleString()} total · showing ${total}`;
   tbody.innerHTML = '';
-  if (!total) { empty.style.display='flex'; return; }
+  if (!total) { empty.style.display='flex'; updateStats(); return; }
   empty.style.display = 'none';
   renderMoreRows();
+  updateStats();
 }
 
 // Global UPC aggregate cache — rebuilt once per renderTable call
@@ -1444,13 +1745,14 @@ function renderMoreRows() {
       const hdr = document.createElement('tr');
       hdr.className = 'loc-hdr';
       hdr.innerHTML = `
-        <td colspan="2" style="padding:8px 10px 5px;border-bottom:none;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;color:var(--accent);">${loc}</td>
-        <td colspan="3" style="padding:8px 10px 5px;border-bottom:none;font-size:10px;color:var(--muted);">${g.count} item${g.count!==1?'s':''}</td>
-        <td colspan="4" style="padding:8px 10px 5px;border-bottom:none;text-align:right;">
-          <span class="${grc}" style="font-size:10px;font-weight:700;">Remain: ${g.rem}</span>
-          <button onclick="copyLocGroup('${ls}')" style="margin-left:8px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:2px 7px;border-radius:4px;font-size:9px;cursor:pointer;font-family:'DM Sans',sans-serif;">⎘ Copy group</button>
-        </td>
-        <td style="border-bottom:none;"></td>`;
+        <td colspan="13" style="padding:7px 10px 5px;border-bottom:none;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-family:'Space Mono',monospace;font-size:11px;font-weight:700;color:var(--accent);">${loc}</span>
+            <span style="font-size:10px;color:var(--muted);">${g.count} item${g.count!==1?'s':''}</span>
+            <span class="${grc}" style="font-size:10px;font-weight:700;margin-left:auto;">Remain: ${g.rem}</span>
+            <button onclick="copyLocGroup('${ls}')" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:2px 7px;border-radius:4px;font-size:9px;cursor:pointer;font-family:'DM Sans',sans-serif;">⎘ Copy group</button>
+          </div>
+        </td>`;
       frag.appendChild(hdr);
     }
 
@@ -1474,7 +1776,9 @@ function renderMoreRows() {
       <td class="td-una">${agg.una}</td>
       <td class="td-rem ${rc}">${rem}</td>
       <td><span class="status-badge ${st.cls}">${st.icon} ${st.label}</span></td>
+      <td><span class="note-cell ${r.item_status?'has-note':''}" onclick="openItemStatusModal('${sk}')" title="${r.item_status||''}">${r.item_status?'📋 '+r.item_status:'+ item status'}</span></td>
       <td>${noteDisplay}</td>
+      <td class="td-loc editable" ondblclick="editCell(event,'${sk}','sheet_loc')" style="color:var(--muted);font-size:10px;">${r.sheet_loc||'<span style=\"opacity:.3\">—</span>'}</td>
       <td style="position:relative;width:0;padding:0;border:none;"><button class="copy-row-btn" onclick="copyRow('${sk}')">⎘ Copy</button></td>`;
     frag.appendChild(tr);
   }
@@ -1509,30 +1813,59 @@ function renderActivity() {
   }).join('');
 }
 function updateStats() {
-  const all=Object.values(rows);
-  const uniqs=new Set(all.map(r=>r.upc)).size;
-  const totalRem=[...new Set(all.map(r=>r.upc))].reduce((s,upc)=>s+globalRemainForUPC(upc),0);
-  document.getElementById('s-total').textContent=uniqs;
-  document.getElementById('s-rows').textContent=all.length;
-  const el=document.getElementById('s-remain');
-  el.textContent=totalRem;
-  el.style.color=totalRem<0?'var(--danger)':totalRem===0?'var(--muted)':'var(--accent)';
+  // Update pagination info only (header stats removed)
+  const totalPages = Math.max(1, Math.ceil(dbTotalItems/DB_PAGE_SIZE));
+  const pi = document.getElementById('db-page-info');
+  const ti = document.getElementById('db-total-info');
+  if (pi) pi.textContent = `Page ${dbCurrentPage} of ${totalPages}`;
+  if (ti) ti.textContent = `${dbTotalItems.toLocaleString()} total items`;
 }
 
 function resetAllChanges() {
-  const confirmed = confirm('Reset ALL orders and N/A marks back to Available? This keeps all scanned items but clears every order and N/A. Cannot be undone.');
+  const confirmed = confirm('Reset ALL orders and N/A marks back to Available? This cannot be undone.');
   if (!confirmed) return;
-  let count = 0;
-  Object.values(rows).forEach(r => {
-    if (r.order > 0 || r.unavail > 0) {
-      r.order = 0; r.unavail = 0; count++;
-    }
-  });
-  showToast(`↩ Reset ${count} row${count!==1?'s':''} back to Available`, '#00e5a0');
-  renderTable(); updateStats(); scheduleSave();
+  pushUndo('Reset all orders/N/A');
+  // Reset in DB — update all ordered/unavail records
+  pbReq('/api/collections/inventory/records?filter='+encodeURIComponent('order_count>0||unavail>0')+'&perPage=500')
+    .then(d => {
+      d.items.forEach(item => {
+        fetch(PB_URL+'/api/collections/inventory/records/'+item.id, {
+          method:'PATCH', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({order_count:0, unavail:0})
+        });
+        if (rows[item.id]) { rows[item.id].order=0; rows[item.id].unavail=0; }
+      });
+      showToast(`↩ Reset ${d.items.length} rows back to Available`, '#00e5a0');
+      renderTable(); updateStats();
+    });
 }
-function setFilter(f){currentFilter=f;['all','remain','neg','nolpn','noted','ordered','unavail','avail'].forEach(id=>document.getElementById('f-'+id)?.classList.toggle('active',id===f));renderTable();}
-function sortBy(col){sortDir=sortCol===col?sortDir*-1:1;sortCol=col;renderTable();}
+
+// Debounced DB search
+let _dbSearchTimer = null;
+function dbSearch() {
+  clearTimeout(_dbSearchTimer);
+  _dbSearchTimer = setTimeout(()=>loadDbPage(1), 400);
+}
+
+function dbGoPage(p) {
+  const totalPages = Math.max(1, Math.ceil(dbTotalItems/DB_PAGE_SIZE));
+  if (p < 1 || p > totalPages) return;
+  loadDbPage(p);
+}
+
+function setFilter(f) {
+  currentFilter=f;
+  ['all','remain','neg','nolpn','noted','ordered','unavail','avail'].forEach(id=>
+    document.getElementById('f-'+id)?.classList.toggle('active',id===f)
+  );
+  loadDbPage(1);
+}
+
+function sortBy(col) {
+  sortDir = sortCol===col ? sortDir*-1 : 1;
+  sortCol = col;
+  loadDbPage(1);
+}
 
 // ── Inline cell edit ───────────────────────────────────────
 function editCell(e,key,field){
@@ -1546,9 +1879,9 @@ function editLocCell(e,key){
   td.innerHTML=`<input class="cell-input" value="${(r.loc||'').replace(/"/g,'&quot;')}" placeholder="Location" onblur="commitLocSingle(this,'${key}')" onkeydown="locKeySingle(event,this,'${key}')" style="width:100%"/>`;
   td.querySelector('input').focus();td.querySelector('input').select();
 }
-function commitCell(inp,key,field){const val=inp.value.trim();if(rows[key])rows[key][field]=val;renderTable();updateStats();showToast(`✓ ${field.toUpperCase()} updated`,'#00e5a0');}
+function commitCell(inp,key,field){const val=inp.value.trim();if(rows[key]){rows[key][field]=val;pbSave(key);}renderTable();updateStats();showToast(`✓ ${field.toUpperCase()} updated`,'#00e5a0');}
 function cellKey(e,inp,key,field){if(e.key==='Enter'){e.preventDefault();commitCell(inp,key,field);}if(e.key==='Escape')renderTable();}
-function commitLocSingle(inp,key){if(rows[key])rows[key].loc=inp.value.trim();renderTable();updateStats();showToast('✓ Location updated','#00e5a0');}
+function commitLocSingle(inp,key){if(rows[key]){rows[key].loc=inp.value.trim();pbSave(key);}renderTable();updateStats();showToast('✓ Location updated','#00e5a0');}
 function locKeySingle(e,inp,key){if(e.key==='Enter'){e.preventDefault();commitLocSingle(inp,key);}if(e.key==='Escape')renderTable();}
 
 // ── Qty popup ──────────────────────────────────────────────
@@ -1604,14 +1937,105 @@ function copyCol(e,col){
 }
 
 // ── Export / Template / Upload ─────────────────────────────
-function exportCSV(){
-  const data=Object.values(rows).map(r=>`"${r.upc}","${r.lpn||''}","${r.loc||''}",${r.qty},${r.order},${r.unavail},${getRemain(r)},"${(r.note||'').replace(/"/g,'""')}"`);
-  const csv='UPC/EAN,LPN/FNSKU,Location,Qty Record,Order,Not Available,Remain,Note\n'+data.join('\n');
+async function deleteAllRecords() {
+  const confirmed = confirm(`Delete ALL ${dbTotalItems.toLocaleString()} records from the database? This cannot be undone.`);
+  if (!confirmed) return;
+  const confirmed2 = confirm('Are you absolutely sure? This will wipe everything.');
+  if (!confirmed2) return;
+
+  showToast('🗑 Deleting all records...', '#ff4466');
+  dbStatus('connecting', 'Deleting all...');
+
+  let deleted = 0;
+  let page = 1;
+  while (true) {
+    // Fetch a batch of IDs
+    const d = await pbReq(`/api/collections/inventory/records?page=1&perPage=200&fields=id`);
+    if (!d.items || !d.items.length) break;
+
+    // Delete all in parallel
+    await Promise.all(d.items.map(item =>
+      fetch(PB_URL+'/api/collections/inventory/records/'+item.id, {method:'DELETE'}).catch(()=>{})
+    ));
+    deleted += d.items.length;
+    dbStatus('connecting', `Deleting... ${deleted.toLocaleString()} done`);
+
+    if (d.items.length < 200) break;
+  }
+
+  rows = {};
+  dbTotalItems = 0;
+  renderTable();
+  updateStats();
+  dbStatus('ok', 'DB Online · 0 items · Live');
+  showToast(`🗑 Deleted ${deleted.toLocaleString()} records`, '#ff4466');
+}
+
+async function exportCSV(){
+  dbStatus('connecting','Exporting...');
+  showToast('⏳ Preparing export...','#ffb800');
+
+  // Show floating progress
+  const bgBox   = document.getElementById('bg-upload');
+  const bgBar   = document.getElementById('bg-upload-bar');
+  const bgPct   = document.getElementById('bg-upload-pct');
+  const bgSub   = document.getElementById('bg-upload-sub');
+  const bgTitle = document.getElementById('bg-upload-title');
+  bgBox.style.display    = 'block';
+  bgBox.style.background = '';
+  bgTitle.textContent    = 'Exporting data...';
+  bgBar.style.width      = '0%';
+  bgPct.textContent      = '0%';
+  bgSub.textContent      = 'Fetching from database...';
+
+  let allRows = [];
+  let page = 1, totalPages = 1, totalItems = 0;
+
+  while (page <= totalPages) {
+    const d = await pbReq(`/api/collections/inventory/records?page=${page}&perPage=500&sort=loc`);
+    totalPages = d.totalPages || 1;
+    totalItems = d.totalItems || 0;
+
+    d.items.forEach(item => {
+      const remain = (item.qty||1) - (item.order_count||0) - (item.unavail||0);
+      const st = getStatus({order:item.order_count||0, unavail:item.unavail||0});
+      allRows.push([
+        `"${(item.upc||'').replace(/"/g,'""')}"`,
+        `"${(item.lpn||'').replace(/"/g,'""')}"`,
+        item.qty||1,
+        item.order_count||0,
+        item.unavail||0,
+        remain,
+        `"${st.label}"`,
+        `"${(item.item_status||'').replace(/"/g,'""')}"`,
+        `"${(item.loc||'').replace(/"/g,'""')}"`,
+        `"${(item.note||'').replace(/"/g,'""')}"`,
+        `"${(item.sheet_loc||'').replace(/"/g,'""')}"`
+      ].join(','));
+    });
+
+    const pct = Math.round((page/totalPages)*100);
+    bgBar.style.width = pct+'%';
+    bgPct.textContent = pct+'%';
+    bgSub.textContent = `${allRows.length.toLocaleString()} of ${totalItems.toLocaleString()} records`;
+    page++;
+  }
+
+  const csv = 'UPC/EAN,LPN/FNSKU,Qty Record,Ordered,Not Available,Remaining,Order Status,Item Status,Location,Note,Sheet Location\n' + allRows.join('\n');
   dl(new Blob([csv],{type:'text/csv'}),`boxscan-${new Date().toISOString().slice(0,10)}.csv`);
-  showToast('✓ Exported!','#00e5a0');
+
+  bgBar.style.width      = '100%';
+  bgPct.textContent      = '100%';
+  bgTitle.textContent    = 'Export Complete!';
+  bgSub.textContent      = `✅ ${allRows.length.toLocaleString()} records exported`;
+  bgBox.style.background = 'rgba(0,229,160,.08)';
+  setTimeout(()=>{ bgBox.style.display='none'; bgBox.style.background=''; }, 4000);
+
+  dbStatus('ok',`DB Online · ${dbTotalItems.toLocaleString()} items · Live`);
+  showToast(`✅ Exported ${allRows.length.toLocaleString()} records`,'#00e5a0');
 }
 function downloadTemplate(){
-  const csv=['UPC/EAN,LPN/FNSKU,Location','196255143795,,A1','196255880272,,A1','198445113291,,B2','198445113192,,B2'].join('\n');
+  const csv='UPC/EAN,LPN/FNSKU,Order Status,Item Status,Location,Note,Sheet Location';
   dl(new Blob([csv],{type:'text/csv'}),'boxscan-template.csv');showToast('⬇ Template downloaded','#00e5a0');
 }
 function handleDrop(e){e.preventDefault();document.getElementById('upload-zone').classList.remove('drag');if(e.dataTransfer.files[0])handleFileUpload(e.dataTransfer.files[0]);}
@@ -1619,79 +2043,110 @@ function handleDrop(e){e.preventDefault();document.getElementById('upload-zone')
 function handleFileUpload(file) {
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = async e => {
     const lines = e.target.result.split('\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('#'));
     if (!lines.length) { showToast('⚠ Empty file','#ffb800'); return; }
     const hasHeader = lines[0].toLowerCase().includes('upc');
     const dataLines = hasHeader ? lines.slice(1) : lines;
     const total = dataLines.length;
 
-    // Show progress UI
-    document.getElementById('upload-progress').style.display = 'flex';
-    document.getElementById('up-progress-bar').style.width = '0%';
-    document.getElementById('up-progress-pct').textContent = '0%';
-    document.getElementById('up-progress-label').textContent = `Importing ${total.toLocaleString()} items...`;
-    document.getElementById('up-progress-sub').textContent = 'Starting...';
-    document.getElementById('uprev').classList.remove('show');
+    // Enforce 20k limit
+    if (total > 20000) {
+      showToast(`⚠ Max 20,000 rows per upload. Your file has ${total.toLocaleString()} rows — please split it.`, '#ff4466');
+      return;
+    }
 
-    let imported = 0, skipped = 0, lastLoc = '';
-    const preview = [];
-    const CHUNK = 2000; // process 2000 rows per frame
-    let offset = 0;
+    // Show floating progress box
+    const bgBox   = document.getElementById('bg-upload');
+    const bgBar   = document.getElementById('bg-upload-bar');
+    const bgPct   = document.getElementById('bg-upload-pct');
+    const bgSub   = document.getElementById('bg-upload-sub');
+    const bgTitle = document.getElementById('bg-upload-title');
+    bgBox.style.display    = 'block';
+    bgBox.style.background = '';
+    bgTitle.textContent    = `Uploading ${total.toLocaleString()} items...`;
+    bgBar.style.width      = '0%';
+    bgPct.textContent      = '0%';
+    bgSub.textContent      = 'Starting...';
 
-    function processChunk() {
-      const chunkEnd = Math.min(offset + CHUNK, total);
-      for (let i = offset; i < chunkEnd; i++) {
-        const line = dataLines[i];
-        const cols = line.split(',').map(c=>c.trim().replace(/^"|"$/g,''));
-        let upc='', lpn='', loc='';
-        if (cols.length>=3)       { [upc,lpn,loc]=cols; }
-        else if (cols.length===2) { [upc,loc]=cols; lpn=''; }
-        else if (cols.length>=1)  { upc=cols[0]; }
-        if (loc.trim()) lastLoc=loc.trim(); else loc=lastLoc;
-        if (!upc.trim()) { skipped++; continue; }
-        upc=upc.trim(); lpn=(lpn||'').trim(); loc=(loc||'').trim();
-        const key = makeUniqueKey(upc, loc);
-        rows[key] = {upc,lpn,loc,qty:1,order:0,unavail:0,note:''};
-        imported++;
-        if (preview.length < 8) preview.push({upc,lpn,loc});
-      }
-      offset = chunkEnd;
+    let imported = 0, skipped = 0, failed = 0;
+    let lastLoc = '', lastSheetLoc = '';
+    const BATCH = 20; // send 20 to PocketBase at a time
+    let batch = [];
 
-      // Update progress bar every chunk
-      const pct = Math.round((offset / total) * 100);
-      document.getElementById('up-progress-bar').style.width = pct + '%';
-      document.getElementById('up-progress-pct').textContent = pct + '%';
-      document.getElementById('up-progress-sub').textContent =
-        `${imported.toLocaleString()} of ${total.toLocaleString()} · ${(total-offset).toLocaleString()} remaining`;
+    async function flushBatch() {
+      if (!batch.length) return;
+      await Promise.all(batch.map(async item => {
+        try {
+          const res = await fetch(PB_URL+'/api/collections/inventory/records', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(item)
+          });
+          const d = await res.json();
+          if (d.id) imported++;
+          else failed++;
+        } catch(e) { failed++; }
+      }));
+      batch = [];
+    }
 
-      if (offset < total) {
-        setTimeout(processChunk, 0); // yield to browser between chunks
-      } else {
-        // All done — update UI without freezing
-        document.getElementById('upload-progress').style.display = 'none';
-        document.getElementById('up-title').textContent =
-          `✓ ${imported.toLocaleString()} items imported${skipped>0?' ('+skipped+' skipped)':''}`;
-        document.getElementById('up-rows').innerHTML =
-          preview.map(p=>`
-            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-family:'Space Mono',monospace;font-size:10px;">
-              <span style="color:var(--text)">${p.upc}</span>
-              <span style="color:var(--ordered)">${p.lpn||'—'}</span>
-              <span style="color:var(--accent);font-size:9px">${p.loc||'—'}</span>
-            </div>`).join('') +
-          (imported>8 ? `<div style="color:var(--muted);font-size:10px;padding-top:5px">...and ${(imported-8).toLocaleString()} more</div>` : '');
-        document.getElementById('uprev').classList.add('show');
-        updateStats();
-        // Defer renderTable so the "done" UI paints first
-        setTimeout(()=>{
-          renderTable();
-          saveData();
-          showToast(`✅ ${imported.toLocaleString()} items imported`,'#00e5a0');
-        }, 50);
+    for (let i = 0; i < dataLines.length; i++) {
+      const cols = dataLines[i].split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+      let upc='', lpn='', loc='';
+      // UPC, LPN, Order Status, Item Status, Location, Note, Sheet Location
+      let order_status='', item_status='', note='', sheet_loc='';
+      if (cols.length>=7)       { [upc,lpn,order_status,item_status,loc,note,sheet_loc]=cols; }
+      else if (cols.length>=6)  { [upc,lpn,order_status,item_status,loc,note]=cols; }
+      else if (cols.length>=5)  { [upc,lpn,order_status,item_status,loc]=cols; }
+      else if (cols.length>=4)  { [upc,lpn,order_status,item_status]=cols; }
+      else if (cols.length>=3)  { [upc,lpn,loc]=cols; }
+      else if (cols.length===2) { [upc,loc]=cols; }
+      else if (cols.length>=1)  { upc=cols[0]; }
+
+      // Fill-down loc and sheet_loc (not note — notes are per row)
+      if (loc.trim()) lastLoc=loc.trim(); else loc=lastLoc;
+      if (sheet_loc.trim()) lastSheetLoc=sheet_loc.trim(); else sheet_loc=lastSheetLoc;
+      if (!upc.trim()) { skipped++; continue; }
+
+      upc=upc.trim(); lpn=(lpn||'').trim();
+      loc=(loc||'').trim(); sheet_loc=(sheet_loc||'').trim();
+      note=(note||'').trim(); item_status=(item_status||'').trim();
+
+      // Parse order status
+      const os = order_status.trim().toLowerCase();
+      const order_count = (os==='ordered'||os==='order'||os==='1'||os==='yes') ? 1 : 0;
+      const unavail_val = (os==='not available'||os==='unavailable'||os==='n/a'||os==='na') ? 1 : 0;
+      batch.push({upc, lpn, loc, sheet_loc, qty:1, order_count, unavail:unavail_val, note, item_status});
+
+      // Flush batch every BATCH items
+      if (batch.length >= BATCH) {
+        await flushBatch();
+        const pct = Math.min(Math.round((i/total)*100), 99);
+        bgBar.style.width = pct+'%';
+        bgPct.textContent = pct+'%';
+        bgSub.textContent = `${imported.toLocaleString()} saved · ${(total-i).toLocaleString()} remaining${failed>0?' · '+failed+' failed':''}`;
+        // Yield to browser so UI stays responsive
+        await new Promise(r=>setTimeout(r,0));
       }
     }
 
-    setTimeout(processChunk, 50); // give browser time to paint progress bar first
+    // Flush remaining
+    await flushBatch();
+
+    // Done
+    bgBar.style.width      = '100%';
+    bgPct.textContent      = '100%';
+    bgTitle.textContent    = 'Upload Complete!';
+    bgSub.textContent      = `✅ ${imported.toLocaleString()} saved${failed>0?' · '+failed+' failed':''}${skipped>0?' · '+skipped+' skipped':''}`;
+    bgBox.style.background = 'rgba(0,229,160,.08)';
+    setTimeout(()=>{ bgBox.style.display='none'; bgBox.style.background=''; }, 6000);
+
+    dbTotalItems = (dbTotalItems||0) + imported;
+    pbReady = true;
+    updateStats();
+    await loadDbPage(1);
+    showToast(`✅ ${imported.toLocaleString()} items uploaded!`, '#00e5a0');
   };
   reader.readAsText(file);
 }
@@ -1706,6 +2161,88 @@ function showToast(msg,color='var(--accent)'){
   document.body.appendChild(t);toastT=setTimeout(()=>t.remove(),2500);
 }
 
+
+// ── Undo / Redo ────────────────────────────────────────────
+const UNDO_LIMIT = 50;
+let _undoStack = [];
+let _redoStack = [];
+
+function pushUndo(description) {
+  // Save a snapshot of current rows
+  _undoStack.push({
+    description,
+    snapshot: JSON.parse(JSON.stringify(rows))
+  });
+  if (_undoStack.length > UNDO_LIMIT) _undoStack.shift();
+  _redoStack = []; // clear redo on new action
+}
+
+async function doUndo() {
+  if (!_undoStack.length) { showToast('⚠ Nothing to undo', '#ffb800'); return; }
+  const entry = _undoStack.pop();
+  _redoStack.push({ description: entry.description, snapshot: JSON.parse(JSON.stringify(rows)) });
+  const prevRows = rows;
+  rows = entry.snapshot;
+  _upcAggCache = null;
+  _lastSaveTime = Date.now();
+  renderTable(); updateStats();
+  showToast(`↩ Undid: ${entry.description}`, '#ffb800');
+  // Sync changed rows to PocketBase
+  await _syncUndoToPB(entry.snapshot, prevRows);
+}
+
+async function doRedo() {
+  if (!_redoStack.length) { showToast('⚠ Nothing to redo', '#ffb800'); return; }
+  const entry = _redoStack.pop();
+  _undoStack.push({ description: entry.description, snapshot: JSON.parse(JSON.stringify(rows)) });
+  const prevRows = rows;
+  rows = entry.snapshot;
+  _upcAggCache = null;
+  _lastSaveTime = Date.now();
+  renderTable(); updateStats();
+  showToast(`↪ Redid: ${entry.description}`, '#4da6ff');
+  await _syncUndoToPB(entry.snapshot, prevRows);
+}
+
+async function _syncUndoToPB(newSnap, oldSnap) {
+  // Find keys that changed and save them to PocketBase
+  const changedKeys = Object.keys(newSnap).filter(k => {
+    const n = newSnap[k], o = oldSnap[k];
+    if (!o) return true;
+    return n.order !== o.order || n.unavail !== o.unavail || n.note !== o.note || 
+           n.loc !== o.loc || n.sheet_loc !== o.sheet_loc || n.item_status !== o.item_status;
+  });
+  // Deleted keys — delete from PocketBase
+  const deletedKeys = Object.keys(oldSnap).filter(k => !newSnap[k]);
+  for (let i=0; i<deletedKeys.length; i+=10) {
+    await Promise.all(deletedKeys.slice(i,i+10).map(k =>
+      fetch(PB_URL+'/api/collections/inventory/records/'+(oldSnap[k]._pbId||k), {method:'DELETE'}).catch(()=>{})
+    ));
+  }
+  // Save changed keys
+  for (let i=0; i<changedKeys.length; i+=10) {
+    await Promise.all(changedKeys.slice(i,i+10).map(k => pbSave(k)));
+  }
+}
+
+// ── Theme toggle ────────────────────────────────────────────
+function toggleTheme() {
+  const root = document.documentElement;
+  const isLight = root.classList.toggle('light');
+  const btn = document.getElementById('theme-toggle');
+  btn.textContent = isLight ? '🌙 Dark' : '☀️ Light';
+  localStorage.setItem('boxscan_theme', isLight ? 'light' : 'dark');
+}
+
+function loadTheme() {
+  const saved = localStorage.getItem('boxscan_theme');
+  if (saved === 'light') {
+    document.documentElement.classList.add('light');
+    const btn = document.getElementById('theme-toggle');
+    if (btn) btn.textContent = '🌙 Dark';
+  }
+}
+
 // ── Keyboard shortcuts ─────────────────────────────────────
 document.getElementById('s-upc').addEventListener('keydown',e=>{if(e.key==='Enter')handleAction('scan');});
 document.addEventListener('keydown',e=>{
@@ -1714,9 +2251,256 @@ document.addEventListener('keydown',e=>{
   if(e.key==='b'||e.key==='B'){switchTab('bulk');document.getElementById('bulk-input').focus();}
   if(e.key==='u'||e.key==='U')switchTab('upload');
   if(e.key==='Escape'){document.getElementById('search-input').value='';renderTable();}
+  if(e.key==='z'&&(e.ctrlKey||e.metaKey)){e.preventDefault();doUndo();}
+  if(e.key==='y'&&(e.ctrlKey||e.metaKey)){e.preventDefault();doRedo();}
 });
 
-// ── Persist to localStorage ────────────────────────────────
+
+// ── PocketBase Connection ──────────────────────────────────
+const PB_URL = window.location.origin;
+let pbReady = false;
+
+// Single fetch helper — throws on error
+async function pbReq(path, method='GET', body=null) {
+  const opts = { method, headers: {'Content-Type':'application/json'} };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(PB_URL + path, opts);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message || res.status);
+  return json;
+}
+
+// Status indicator
+function dbStatus(state, msg) {
+  const dot = document.getElementById('db-dot');
+  const lbl = document.getElementById('db-label');
+  if (!dot||!lbl) return;
+  dot.style.background = {ok:'#00e5a0',saving:'#4da6ff',error:'#ff4466',connecting:'#ffb800'}[state]||'#5a5a72';
+  lbl.textContent = msg;
+}
+
+// Load ALL records from PocketBase on startup — handles any number of pages
+// DB-level pagination state
+let dbTotalItems = 0;
+let dbCurrentPage = 1;
+const DB_PAGE_SIZE = 100;
+let dbCurrentFilter = '';
+let dbCurrentSort = 'loc';
+
+async function pbLoad() {
+  dbStatus('connecting','Connecting...');
+  await pbReq('/api/health');
+  rows = {};
+  pbReady = true;
+  // Just get total count — don't load everything
+  const d = await pbReq('/api/collections/inventory/records?perPage=1');
+  dbTotalItems = d.totalItems || 0;
+  rowCounter = dbTotalItems + 1000;
+  dbStatus('ok', `DB Online · ${dbTotalItems.toLocaleString()} items · Live`);
+  await loadDbPage(1);
+  updateStats();
+}
+
+// Load a specific page from PocketBase into rows
+async function loadDbPage(page) {
+  dbCurrentPage = page;
+  const q = document.getElementById('search-input')?.value?.trim() || '';
+  const filters = [];
+  if (q) filters.push(`(upc~"${q}"||lpn~"${q}"||loc~"${q}"||note~"${q}")`);
+  if (currentFilter==='remain')  filters.push('order_count=0&&unavail=0');
+  if (currentFilter==='ordered') filters.push('order_count>0');
+  if (currentFilter==='unavail') filters.push('unavail>0');
+  if (currentFilter==='avail')   filters.push('order_count=0&&unavail=0');
+  if (currentFilter==='noted')   filters.push('note!=""');
+  if (currentFilter==='nolpn')   filters.push('lpn=""');
+  const filterStr = filters.length ? encodeURIComponent(filters.join('&&')) : '';
+  const sortStr = sortCol==='locKey'?'loc':sortCol==='remain'?'order_count':sortCol;
+  const sortDir2 = sortDir===1?'+':'-';
+  const url = `/api/collections/inventory/records?page=${page}&perPage=${DB_PAGE_SIZE}&sort=${sortDir2}${sortStr}${filterStr?'&filter='+filterStr:''}`;
+  
+  dbStatus('connecting','Loading...');
+  const d = await pbReq(url);
+  dbTotalItems = d.totalItems || 0;
+  
+  // Clear rows and load this page only
+  rows = {};
+  d.items.forEach(item => {
+    rows[item.id] = {
+      _pbId: item.id, upc: item.upc||'', lpn: item.lpn||'',
+      loc: item.loc||'', qty: item.qty||1,
+      order: item.order_count||0, unavail: item.unavail||0,
+      note: item.note||'', sheet_loc: item.sheet_loc||'',
+      item_status: item.item_status||''
+    };
+  });
+  dbStatus('ok', `DB Online · ${dbTotalItems.toLocaleString()} total · page ${page}/${Math.ceil(dbTotalItems/DB_PAGE_SIZE)} · Live`);
+  renderTable();
+}
+
+// Save one row — non-blocking fire-and-forget
+function pbSave(key) {
+  const r = rows[key];
+  if (!r) return;
+  const body = {
+    upc: r.upc||'', lpn: r.lpn||'', loc: r.loc||'',
+    qty: r.qty||1, order_count: r.order||0,
+    unavail: r.unavail||0, note: r.note||'', sheet_loc: r.sheet_loc||'',
+    item_status: r.item_status||''
+  };
+  const pbId = r._pbId || key;
+  // Always PATCH — for DB-loaded rows, key IS the PocketBase id
+  fetch(PB_URL+'/api/collections/inventory/records/'+pbId, {
+    method: 'PATCH',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  }).then(res=>res.json()).then(d=>{
+    if (d.id && rows[key]) rows[key]._pbId = d.id;
+    else if (d.code === 404) {
+      // Record not found — create it
+      fetch(PB_URL+'/api/collections/inventory/records', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      }).then(r=>r.json()).then(data=>{
+        if (data.id && rows[key]) rows[key]._pbId = data.id;
+      });
+    }
+  }).catch(e => console.warn('pbSave error:', e.message));
+}
+
+// Bulk save after CSV import — runs in background, non-blocking
+async function pbSaveAll() {
+  const keys = Object.keys(rows).filter(k => !rows[k]._pbId);
+  const total = keys.length;
+  if (!total) { showToast('✅ All items already saved','#00e5a0'); return; }
+
+  const bgBox  = document.getElementById('bg-upload');
+  const bgBar  = document.getElementById('bg-upload-bar');
+  const bgPct  = document.getElementById('bg-upload-pct');
+  const bgSub  = document.getElementById('bg-upload-sub');
+  const bgTitle= document.getElementById('bg-upload-title');
+  bgBox.style.display    = 'block';
+  bgBox.style.background = '';
+  bgTitle.textContent    = `Saving ${total.toLocaleString()} items...`;
+  bgBar.style.width      = '0%';
+  bgPct.textContent      = '0%';
+  bgSub.textContent      = 'Starting...';
+
+  const BATCH = 30;
+  let done = 0, failed = 0;
+
+  for (let i = 0; i < keys.length; i += BATCH) {
+    const batch = keys.slice(i, i+BATCH);
+    await Promise.all(batch.map(async k => {
+      const r = rows[k];
+      if (!r) return;
+      try {
+        const res = await fetch(PB_URL+'/api/collections/inventory/records', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            upc: r.upc||'', lpn: r.lpn||'', loc: r.loc||'',
+            qty: r.qty||1, order_count: r.order||0,
+            unavail: r.unavail||0, note: r.note||'',
+            sheet_loc: r.sheet_loc||'',
+            item_status: r.item_status||''
+          })
+        });
+        const data = await res.json();
+        if (data.id) { rows[k]._pbId = data.id; done++; }
+        else { failed++; }
+      } catch(e) { failed++; }
+    }));
+
+    // Yield every 5 batches so UI stays responsive
+    if ((i/BATCH) % 5 === 0) await new Promise(r => setTimeout(r, 0));
+
+    const pct = Math.min(Math.round(((i+BATCH)/total)*100), 100);
+    bgBar.style.width  = pct+'%';
+    bgPct.textContent  = pct+'%';
+    bgSub.textContent  = `${done.toLocaleString()} / ${total.toLocaleString()} saved${failed>0?' · '+failed+' failed':''}`;
+  }
+
+  bgBar.style.width      = '100%';
+  bgPct.textContent      = '100%';
+  bgSub.textContent      = `✅ ${done.toLocaleString()} saved${failed>0?' · '+failed+' failed':''}`;
+  bgTitle.textContent    = 'Upload Complete!';
+  bgBox.style.background = 'rgba(0,229,160,.08)';
+  setTimeout(() => { bgBox.style.display='none'; bgBox.style.background=''; }, 5000);
+
+  dbTotalItems = done;
+  pbReady = true;
+  updateStats();
+  await loadDbPage(1);
+  showToast(`✅ ${done.toLocaleString()} items saved!${failed>0?' ('+failed+' failed)':''}`, '#00e5a0');
+}
+
+// Delete one row from PocketBase
+async function pbDel(pbId) {
+  if (!pbId) return;
+  try {
+    await pbReq('/api/collections/inventory/records/'+pbId, 'DELETE');
+  } catch(e) {
+    showToast('⚠ Delete failed: '+e.message,'#ff4466');
+  }
+}
+
+// Poll every 3s for changes from other employees
+let _syncBusy = false;
+let _lastSaveTime = 0;
+
+function pbStartSync() {
+  setInterval(async () => {
+    if (!pbReady || _syncBusy) return;
+    // Skip sync for 10 seconds after any local save
+    if (Date.now() - _lastSaveTime < 10000) return;
+    _syncBusy = true;
+    try {
+      const since = new Date(Date.now()-10000).toISOString().replace('T',' ').substring(0,19);
+      const filter = encodeURIComponent(`updated >= '${since}'`);
+      const d = await pbReq(`/api/collections/inventory/records?filter=${filter}&perPage=500`);
+      if (!d.items || !d.items.length) return;
+
+      let changed = false;
+      d.items.forEach(item => {
+        // Only update rows that exist on current page
+        if (rows[item.id]) {
+          rows[item.id].upc       = item.upc||'';
+          rows[item.id].lpn       = item.lpn||'';
+          rows[item.id].loc       = item.loc||'';
+          rows[item.id].qty       = item.qty||1;
+          rows[item.id].order     = item.order_count||0;
+          rows[item.id].unavail   = item.unavail||0;
+          rows[item.id].note      = item.note||'';
+          rows[item.id].sheet_loc = item.sheet_loc||'';
+          rows[item.id].item_status = item.item_status||'';
+          changed = true;
+        }
+      });
+
+      if (changed) {
+        _upcAggCache = null;
+        renderTable();
+      }
+    } catch(e) {}
+    finally { _syncBusy = false; }
+  }, 3000);
+
+  // Check total count every 15s — only reload if count changed
+  setInterval(async () => {
+    if (!pbReady || Date.now() - _lastSaveTime < 10000) return;
+    try {
+      const d = await pbReq(`/api/collections/inventory/records?perPage=1`);
+      const currentCount = d.totalItems || 0;
+      if (currentCount !== dbTotalItems) {
+        dbTotalItems = currentCount;
+        await loadDbPage(Math.min(dbCurrentPage, Math.max(1, Math.ceil(currentCount/DB_PAGE_SIZE))));
+      }
+    } catch(e) {}
+  }, 15000);
+}
+
+// ── Persist to localStorage (fallback) ───────────────────────
 const STORAGE_KEY = 'boxscan_v1';
 
 function saveData() {
@@ -1747,39 +2531,39 @@ function loadData() {
 
 // Auto-save after every action — debounced
 let _saveTimer = null;
-function scheduleSave() {
+function scheduleSave(changedKeys=[]) {
+  // Save to localStorage as backup
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(saveData, 800);
 }
 
+
+// ── Real-time sync via polling ─────────────────────────────
+let _pollTimer = null;
+
+
+
 // ── Init ───────────────────────────────────────────────────
-const hasSaved = loadData();
+dbStatus('connecting', 'Connecting...');
+renderActivity(); updateStats();
 
-if (!hasSaved) {
-  // Load sample data only if no saved data exists
-  [
-    ['196255143795','','A1'],
-    ['196255143795','','A1'],
-    ['196255143795','','A1'],
-    ['196255880272','','A1'],
-    ['196255880272','','A1'],
-    ['196255880265','','A1'],
-    ['196255143795','','B2'],
-    ['196255143795','','B2'],
-    ['198445113291','','B2'],
-    ['198445113192','','B2'],
-    ['196255880272','','P3'],
-    ['198445103278','','P3'],
-    ['198445103278','','P3'],
-  ].forEach(([upc,lpn,loc])=>{
-    const key=makeUniqueKey(upc,loc);
-    rows[key]={upc,lpn,qty:1,order:0,unavail:0,loc,note:''};
+pbLoad()
+  .then(() => {
+    showToast(`✅ ${Object.keys(rows).length.toLocaleString()} items loaded`, '#00e5a0');
+    pbStartSync();
+  })
+  .catch((err) => {
+    console.warn('PocketBase failed:', err.message);
+    dbStatus('error', 'DB Offline — local only');
+    // Fall back to localStorage
+    const hasSaved = loadData();
+    if (hasSaved) {
+      showToast(`⚠ DB offline — loaded ${Object.keys(rows).length.toLocaleString()} items from local cache`, '#ffb800');
+    } else {
+      showToast('⚠ DB offline — no local data found', '#ff4466');
+    }
+    renderTable(); updateStats();
   });
-} else {
-  showToast(`✅ ${Object.keys(rows).length.toLocaleString()} items loaded`,'#00e5a0');
-}
-
-renderTable();renderActivity();updateStats();
 </script>
 </body>
 </html>
